@@ -46,15 +46,13 @@ if (!empty($blogArticles)) {
     <meta name="description" content="<?= Helpers::e($siteName) ?> — Boutique photo & vidéo professionnelle à Casablanca.">
     <title><?= Helpers::e($siteName) ?> — Matériel Photo & Vidéo</title>
     <link rel="stylesheet" href="/assets/css/public.css">
-    <link rel="stylesheet" href="/assets/css/sidebar.css">
     <link rel="stylesheet" href="/assets/css/chat.css">
 </head>
-<body class="page-home has-sidebar">
+<body class="page-home">
     <a href="#main" class="skip-link">Aller au contenu principal</a>
 
-    <?php require __DIR__ . '/includes/site-sidebar.php'; ?>
+    <?php require __DIR__ . '/includes/site-header.php'; ?>
 
-    <div class="site-main">
     <main id="main">
         <section class="hero-video" aria-label="Présentation">
             <div class="hero-video-wrap">
@@ -246,10 +244,9 @@ if (!empty($blogArticles)) {
     </main>
 
     <?php require __DIR__ . '/includes/site-footer.php'; ?>
-    </div>
 
     <?php require __DIR__ . '/includes/site-chat.php'; ?>
-    <script src="/assets/js/sidebar.js"></script>
+    <script src="/assets/js/mega-menu.js"></script>
     <script src="/assets/js/chat.js"></script>
 </body>
 </html>

@@ -20,8 +20,10 @@
     }
 
     function openChat() {
+        if (!panel || !toggle) return;
         panel.hidden = false;
         panel.setAttribute('aria-hidden', 'false');
+        toggle.hidden = true;
         toggle.setAttribute('aria-expanded', 'true');
         widget.classList.add('is-open');
         if (!greeted && config.welcome) {
@@ -29,25 +31,41 @@
             greeted = true;
         }
         var input = form && form.querySelector('input[name="message"]');
-        if (input) input.focus();
+        if (input) {
+            window.setTimeout(function () { input.focus(); }, 80);
+        }
     }
 
     function closeChat() {
+        if (!panel || !toggle) return;
         panel.hidden = true;
         panel.setAttribute('aria-hidden', 'true');
+        toggle.hidden = false;
         toggle.setAttribute('aria-expanded', 'false');
         widget.classList.remove('is-open');
     }
 
-    toggle.addEventListener('click', function () {
-        if (widget.classList.contains('is-open')) {
-            closeChat();
-        } else {
+    if (toggle) {
+        toggle.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
             openChat();
+        });
+    }
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeChat();
+        });
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && widget.classList.contains('is-open')) {
+            closeChat();
         }
     });
-
-    if (closeBtn) closeBtn.addEventListener('click', closeChat);
 
     if (form) {
         form.addEventListener('submit', function (e) {

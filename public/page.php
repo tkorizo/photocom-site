@@ -24,13 +24,11 @@ if (!$page || !(int) ($page['is_published'] ?? 0)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= Helpers::e($pageTitle) ?> — <?= Helpers::e($siteName) ?></title>
     <link rel="stylesheet" href="/assets/css/public.css">
-    <link rel="stylesheet" href="/assets/css/sidebar.css">
     <link rel="stylesheet" href="/assets/css/chat.css">
 </head>
-<body class="has-sidebar">
-    <?php require __DIR__ . '/includes/site-sidebar.php'; ?>
+<body>
+    <?php require __DIR__ . '/includes/site-header.php'; ?>
 
-    <div class="site-main">
     <main class="page-content">
         <div class="container">
             <header class="page-content-header">
@@ -43,9 +41,8 @@ if (!$page || !(int) ($page['is_published'] ?? 0)) {
     </main>
 
     <?php require __DIR__ . '/includes/site-footer.php'; ?>
-    </div>
     <?php require __DIR__ . '/includes/site-chat.php'; ?>
-    <script src="/assets/js/sidebar.js"></script>
+    <script src="/assets/js/mega-menu.js"></script>
     <script src="/assets/js/chat.js"></script>
 </body>
 </html>

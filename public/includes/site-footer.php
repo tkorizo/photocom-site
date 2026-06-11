@@ -18,11 +18,12 @@ declare(strict_types=1);
             </a>
             <p class="footer-desc">Matériel photo, vidéo et studio professionnel. Distribution officielle des grandes marques au Maroc.</p>
             <?php if (!empty($socialLinks)): ?>
-                <?php
-                $socialWrapperClass = 'footer-social';
-                $socialLinkClass = 'footer-social-icon';
-                require __DIR__ . '/social-icons.php';
-                ?>
+                <div class="footer-social">
+                    <?php
+                    $socialLinkClass = 'footer-social-icon';
+                    require __DIR__ . '/social-icons.php';
+                    ?>
+                </div>
             <?php endif; ?>
         </div>
 

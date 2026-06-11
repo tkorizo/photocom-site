@@ -73,13 +73,11 @@ $queryParams = static function () use (
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= Helpers::e($pageTitle) ?> — <?= Helpers::e($siteName) ?></title>
     <link rel="stylesheet" href="/assets/css/public.css">
-    <link rel="stylesheet" href="/assets/css/sidebar.css">
     <link rel="stylesheet" href="/assets/css/chat.css">
 </head>
-<body class="page-catalogue has-sidebar<?= $category ? ' has-category-hero' : '' ?>">
-    <?php require __DIR__ . '/includes/site-sidebar.php'; ?>
+<body class="page-catalogue<?= $category ? ' has-category-hero' : '' ?>">
+    <?php require __DIR__ . '/includes/site-header.php'; ?>
 
-    <div class="site-main">
     <?php if ($category):
         $categoryHeroImage = CategoryRepository::heroImage($category);
     ?>
@@ -88,13 +86,15 @@ $queryParams = static function () use (
         aria-label="<?= Helpers::e($category['name']) ?>"
         <?php if ($categoryHeroImage): ?>style="background-image: url('<?= Helpers::e($categoryHeroImage) ?>')"<?php endif; ?>
     >
-        <div class="category-hero-inner container">
-            <span class="category-hero-label">Catalogue</span>
-            <h1><?= Helpers::e($category['name']) ?></h1>
-            <?php if (!empty($category['description'])): ?>
-                <p class="category-hero-desc"><?= Helpers::e($category['description']) ?></p>
-            <?php endif; ?>
-            <p class="category-hero-meta"><?= $result['total'] ?> produit<?= $result['total'] > 1 ? 's' : '' ?></p>
+        <div class="category-hero-inner">
+            <div class="container category-hero-content">
+                <span class="category-hero-label">Catalogue</span>
+                <h1><?= Helpers::e($category['name']) ?></h1>
+                <?php if (!empty($category['description'])): ?>
+                    <p class="category-hero-desc"><?= Helpers::e($category['description']) ?></p>
+                <?php endif; ?>
+                <p class="category-hero-meta"><?= $result['total'] ?> produit<?= $result['total'] > 1 ? 's' : '' ?></p>
+            </div>
         </div>
     </section>
     <?php endif; ?>
@@ -103,14 +103,16 @@ $queryParams = static function () use (
             <?php require __DIR__ . '/includes/catalogue-filters.php'; ?>
 
             <div class="catalogue-results">
+                <?php if (!$category): ?>
                 <header class="catalogue-header">
-                    <?php if (!$category): ?>
-                        <h1><?= Helpers::e($pageTitle) ?></h1>
-                    <?php endif; ?>
-                    <?php if (!$category): ?>
-                        <p class="catalogue-meta"><?= $result['total'] ?> produit<?= $result['total'] > 1 ? 's' : '' ?></p>
-                    <?php endif; ?>
+                    <h1><?= Helpers::e($pageTitle) ?></h1>
+                    <p class="catalogue-meta"><?= $result['total'] ?> produit<?= $result['total'] > 1 ? 's' : '' ?></p>
                 </header>
+                <?php else: ?>
+                <header class="catalogue-toolbar" aria-label="Résultats">
+                    <p class="catalogue-toolbar-label">Produits disponibles</p>
+                </header>
+                <?php endif; ?>
 
                 <?php if (empty($result['data'])): ?>
                     <p class="catalogue-empty">Aucun produit trouvé. <a href="/catalogue.php<?= $catSlug ? '?cat=' . urlencode($catSlug) : '' ?>">Réinitialiser les filtres</a></p>
@@ -157,9 +159,8 @@ $queryParams = static function () use (
     </main>
 
     <?php require __DIR__ . '/includes/site-footer.php'; ?>
-    </div>
     <?php require __DIR__ . '/includes/site-chat.php'; ?>
-    <script src="/assets/js/sidebar.js"></script>
+    <script src="/assets/js/mega-menu.js"></script>
     <script src="/assets/js/chat.js"></script>
 </body>
 </html>

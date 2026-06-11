@@ -7,17 +7,27 @@ declare(strict_types=1);
 /** @var string $siteName */
 ?>
 <div class="chat-widget" data-chat-widget>
+    <button type="button" class="chat-bar" data-chat-toggle aria-label="Ouvrir le chat" aria-expanded="false">
+        <span class="chat-bar-waves" aria-hidden="true">
+            <span></span><span></span><span></span>
+        </span>
+        <span class="chat-bar-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4z"/></svg>
+        </span>
+        <span class="chat-bar-label">Besoin d'aide ?</span>
+    </button>
+
     <div class="chat-panel" data-chat-panel hidden aria-hidden="true">
         <header class="chat-panel-head">
             <div class="chat-panel-brand">
-                <?php $logoClass = 'chat-logo-img'; $logoWidth = 92; require __DIR__ . '/site-logo.php'; ?>
+                <?php $logoClass = 'chat-logo-img'; $logoWidth = 88; require __DIR__ . '/site-logo.php'; ?>
                 <div>
                     <strong>Assistance en ligne</strong>
                     <span><span class="chat-status-dot" aria-hidden="true"></span> Réponse rapide</span>
                 </div>
             </div>
-            <button type="button" class="chat-panel-close" data-chat-close aria-label="Fermer le chat">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            <button type="button" class="chat-panel-minimize" data-chat-close aria-label="Réduire le chat">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
             </button>
         </header>
         <div class="chat-messages" data-chat-messages role="log" aria-live="polite"></div>
@@ -28,15 +38,6 @@ declare(strict_types=1);
             </button>
         </form>
     </div>
-
-    <button type="button" class="chat-launcher" data-chat-toggle aria-label="Ouvrir le chat" aria-expanded="false">
-        <span class="chat-launcher-waves" aria-hidden="true">
-            <span></span><span></span><span></span>
-        </span>
-        <span class="chat-launcher-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4z"/></svg>
-        </span>
-    </button>
 </div>
 
 <script>

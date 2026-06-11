@@ -20,15 +20,11 @@ $activeCatSlug = $activeCatSlug ?? trim($_GET['cat'] ?? '');
     <div class="sidebar-inner">
         <div class="sidebar-head">
             <a href="/" class="sidebar-logo">
-                <?php $logoClass = 'sidebar-logo-img'; require __DIR__ . '/site-logo.php'; ?>
+                <?php $logoClass = 'sidebar-logo-img'; $logoWidth = 168; require __DIR__ . '/site-logo.php'; ?>
             </a>
             <button type="button" class="sidebar-close" data-sidebar-close aria-label="Fermer le menu">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
-        </div>
-
-        <div class="sidebar-promo">
-            <p><?= Helpers::e($promoText) ?></p>
         </div>
 
         <form class="sidebar-search" action="/catalogue.php" method="get" role="search">
@@ -109,7 +105,6 @@ $activeCatSlug = $activeCatSlug ?? trim($_GET['cat'] ?? '');
                 <a href="/admin/login.php" class="sidebar-action-link">Compte</a>
             </div>
             <?php require __DIR__ . '/social-icons.php'; ?>
-            <a href="https://wa.me/<?= Helpers::e($whatsapp) ?>" class="btn btn-primary sidebar-whatsapp" target="_blank" rel="noopener">WhatsApp</a>
         </div>
     </div>
 </aside>
