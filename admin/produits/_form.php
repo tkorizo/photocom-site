@@ -40,15 +40,31 @@ require_once dirname(__DIR__) . '/includes/category_picker.php';
         <div class="form-row">
             <label>
                 Nom du produit *
-                <input type="text" name="name" value="<?= Helpers::e($product['name'] ?? $_POST['name'] ?? '') ?>" required>
+                <input type="text" name="name" id="product-name" value="<?= Helpers::e($product['name'] ?? $_POST['name'] ?? '') ?>" required data-slug-source>
             </label>
             <label>
                 Slug
-                <input type="text" name="slug" value="<?= Helpers::e($product['slug'] ?? $_POST['slug'] ?? '') ?>">
+                <input type="text" name="slug" id="product-slug" value="<?= Helpers::e($product['slug'] ?? $_POST['slug'] ?? '') ?>" data-slug-target>
+                <small id="slug-feedback" class="field-hint" aria-live="polite"></small>
             </label>
-            <label>
+        </div>
+        <div class="form-row">
+            <label class="brand-field">
                 Marque
-                <input type="text" name="brand" value="<?= Helpers::e($product['brand'] ?? $_POST['brand'] ?? '') ?>">
+                <input type="search" id="brand-search" class="brand-search" placeholder="Rechercher une marque…" autocomplete="off">
+                <select name="brand" id="brand-select" size="6" class="brand-select">
+                    <option value="">— Aucune —</option>
+                    <?php
+                    $selectedBrand = $product['brand'] ?? $_POST['brand'] ?? '';
+                    foreach (BrandRepository::all(true) as $brandOption):
+                    ?>
+                        <option value="<?= Helpers::e($brandOption['name']) ?>" <?= $selectedBrand === $brandOption['name'] ? 'selected' : '' ?>>
+                            <?= Helpers::e($brandOption['name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <button type="button" class="btn btn-sm" id="brand-add-btn" style="margin-top:0.5rem">+ Ajouter une marque</button>
+                <a href="/admin/marques/index.php" class="btn btn-sm" target="_blank" rel="noopener" style="margin-top:0.5rem">Gérer les logos</a>
             </label>
         </div>
 
@@ -168,3 +184,106 @@ require_once dirname(__DIR__) . '/includes/category_picker.php';
 </div>
 <script src="/assets/js/image-upload.js"></script>
 <script src="/assets/js/category-picker.js"></script>
+<script>
+(function () {
+    var nameInput = document.getElementById('product-name');
+    var slugInput = document.getElementById('product-slug');
+    var feedback = document.getElementById('slug-feedback');
+    var excludeId = <?= (int) ($product['id'] ?? 0) ?>;
+    var slugTouched = <?= json_encode(trim((string) ($product['slug'] ?? $_POST['slug'] ?? '')) !== '') ?>;
+    var checkTimer = null;
+
+    function slugify(text) {
+        return String(text || '')
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '') || '';
+    }
+
+    function setFeedback(message, isError) {
+        if (!feedback) return;
+        feedback.textContent = message || '';
+        feedback.className = 'field-hint' + (isError ? ' field-hint-error' : (message ? ' field-hint-ok' : ''));
+    }
+
+    function checkSlug(slug) {
+        if (!slug) {
+            setFeedback('');
+            return;
+        }
+        var url = '/admin/produits/check-slug.php?slug=' + encodeURIComponent(slug);
+        if (excludeId > 0) url += '&exclude_id=' + excludeId;
+        fetch(url, { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data || !data.ok) return;
+                if (data.slug && slugInput && slugInput.value !== data.slug && !slugTouched) {
+                    slugInput.value = data.slug;
+                }
+                setFeedback(data.message, !!data.exists);
+            })
+            .catch(function () {});
+    }
+
+    if (nameInput && slugInput) {
+        nameInput.addEventListener('input', function () {
+            if (!slugTouched) {
+                slugInput.value = slugify(nameInput.value);
+            }
+            clearTimeout(checkTimer);
+            checkTimer = setTimeout(function () { checkSlug(slugInput.value || slugify(nameInput.value)); }, 280);
+        });
+        slugInput.addEventListener('input', function () {
+            slugTouched = true;
+            clearTimeout(checkTimer);
+            checkTimer = setTimeout(function () { checkSlug(slugInput.value); }, 280);
+        });
+        if (slugInput.value) checkSlug(slugInput.value);
+    }
+
+    var brandSearch = document.getElementById('brand-search');
+    var brandSelect = document.getElementById('brand-select');
+    var brandAddBtn = document.getElementById('brand-add-btn');
+    var csrf = document.querySelector('input[name="csrf_token"]');
+
+    if (brandSearch && brandSelect) {
+        brandSearch.addEventListener('input', function () {
+            var q = brandSearch.value.trim().toLowerCase();
+            Array.prototype.forEach.call(brandSelect.options, function (opt) {
+                if (!opt.value) { opt.hidden = false; return; }
+                opt.hidden = q !== '' && opt.text.toLowerCase().indexOf(q) === -1;
+            });
+        });
+    }
+
+    if (brandAddBtn && brandSelect && csrf) {
+        brandAddBtn.addEventListener('click', function () {
+            var name = window.prompt('Nom de la nouvelle marque :');
+            if (!name) return;
+            name = name.trim();
+            if (!name) return;
+            var body = new FormData();
+            body.append('csrf_token', csrf.value);
+            body.append('name', name);
+            fetch('/admin/marques/quick-create.php', { method: 'POST', body: body, credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (!data.ok) {
+                        alert(data.error || 'Erreur');
+                        return;
+                    }
+                    var opt = document.createElement('option');
+                    opt.value = data.brand.name;
+                    opt.textContent = data.brand.name;
+                    opt.selected = true;
+                    brandSelect.appendChild(opt);
+                    brandSelect.value = data.brand.name;
+                    if (brandSearch) brandSearch.value = '';
+                    Array.prototype.forEach.call(brandSelect.options, function (o) { o.hidden = false; });
+                })
+                .catch(function () { alert('Impossible d\'ajouter la marque.'); });
+        });
+    }
+})();
+</script>

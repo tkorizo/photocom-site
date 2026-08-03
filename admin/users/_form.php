@@ -5,6 +5,9 @@ declare(strict_types=1);
 /** @var array $errors */
 /** @var array $data */
 /** @var bool $isEdit */
+/** @var bool $isSuperTarget */
+$isSuperTarget = !empty($isSuperTarget);
+$assignable = UserRepository::assignableRoles();
 ?>
 <?php if (!empty($errors)): ?>
     <div class="alert alert-error">
@@ -25,7 +28,7 @@ declare(strict_types=1);
         </label>
 
         <label>Email
-            <input type="email" name="email" value="<?= Helpers::e($data['email'] ?? '') ?>" required>
+            <input type="email" name="email" value="<?= Helpers::e($data['email'] ?? '') ?>" required <?= $isSuperTarget && !Auth::isSuperAdmin() ? 'readonly' : '' ?>>
         </label>
 
         <label>Mot de passe <?= $isEdit ? '(laisser vide pour ne pas changer)' : '' ?>
@@ -33,10 +36,19 @@ declare(strict_types=1);
         </label>
 
         <label>Rôle
-            <select name="role">
-                <option value="editor" <?= ($data['role'] ?? '') === 'editor' ? 'selected' : '' ?>>Éditeur — produits et catégories</option>
-                <option value="admin" <?= ($data['role'] ?? '') === 'admin' ? 'selected' : '' ?>>Administrateur — accès complet</option>
-            </select>
+            <?php if ($isSuperTarget): ?>
+                <input type="hidden" name="role" value="<?= Helpers::e(Auth::ROLE_SUPER_ADMIN) ?>">
+                <input type="text" value="Super administrateur — compte unique" disabled>
+                <small class="field-hint">Ce rôle ne peut pas être modifié. Un seul super administrateur existe.</small>
+            <?php else: ?>
+                <select name="role">
+                    <?php foreach ($assignable as $value => $label): ?>
+                        <option value="<?= Helpers::e($value) ?>" <?= ($data['role'] ?? '') === $value ? 'selected' : '' ?>>
+                            <?= Helpers::e($label) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            <?php endif; ?>
         </label>
 
         <div class="form-actions">

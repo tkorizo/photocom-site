@@ -13,6 +13,12 @@ if (Auth::check()) {
 $config = Helpers::config();
 $error = null;
 $lockout = Auth::lockoutRemaining();
+$homeSettings = SettingRepository::home();
+$adminLogo = trim((string) ($homeSettings['site_logo_mark'] ?? ''));
+if ($adminLogo === '') {
+    $adminLogo = '/assets/images/logo-admin.webp';
+}
+$adminFavicon = trim((string) ($homeSettings['site_favicon'] ?? ''));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($lockout > 0) {
@@ -38,12 +44,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion — <?= Helpers::e($config['name']) ?></title>
+    <?php if ($adminFavicon !== ''): ?>
+        <link rel="icon" href="<?= Helpers::e($adminFavicon) ?>">
+    <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/admin.css">
 </head>
 <body class="login-body">
     <div class="login-card">
         <div class="login-brand">
-            <span class="brand-logo">PC</span>
+            <img src="<?= Helpers::e($adminLogo) ?>" alt="<?= Helpers::e($config['name']) ?>" class="brand-logo-img brand-logo-img--login">
             <h1><?= Helpers::e($config['name']) ?></h1>
             <p>Administration</p>
         </div>

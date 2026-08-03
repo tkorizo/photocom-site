@@ -54,6 +54,19 @@ class Database
         self::addColumnIfMissing('categories', 'title_background', 'TEXT');
         self::addColumnIfMissing('categories', 'extra_description', 'TEXT');
         self::addColumnIfMissing('categories', 'menu_order', 'INTEGER DEFAULT 0');
+        self::addColumnIfMissing('categories', 'show_in_menu', 'INTEGER DEFAULT 1');
+
+        $db->exec('CREATE TABLE IF NOT EXISTS brands (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            slug TEXT NOT NULL UNIQUE,
+            logo TEXT,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT (datetime(\'now\')),
+            updated_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
+        )');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_brands_name ON brands(name)');
 
         self::addColumnIfMissing('products', 'stock_quantity', 'INTEGER');
         self::addColumnIfMissing('products', 'manage_stock', 'INTEGER DEFAULT 0');
@@ -65,6 +78,8 @@ class Database
         self::addColumnIfMissing('products', 'on_sale', 'INTEGER DEFAULT 0');
         self::addColumnIfMissing('products', 'images_secondary_json', 'TEXT');
         self::addColumnIfMissing('products', 'permalink', 'TEXT');
+        self::addColumnIfMissing('products', 'admin_label', 'TEXT');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_products_admin_label ON products(admin_label)');
 
         $db->exec('CREATE TABLE IF NOT EXISTS product_categories (
             product_id INTEGER NOT NULL,
@@ -78,6 +93,13 @@ class Database
         $db->exec('CREATE INDEX IF NOT EXISTS idx_product_categories_category ON product_categories(category_id)');
 
         self::addColumnIfMissing('users', 'role', "TEXT NOT NULL DEFAULT 'admin'");
+        self::migrateUserRoles();
+
+        self::addColumnIfMissing('articles', 'meta_title', 'TEXT');
+        self::addColumnIfMissing('articles', 'meta_description', 'TEXT');
+        self::addColumnIfMissing('articles', 'meta_keywords', 'TEXT');
+        self::addColumnIfMissing('articles', 'focus_keyword', 'TEXT');
+        self::addColumnIfMissing('articles', 'canonical_url', 'TEXT');
 
         $db->exec('CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
@@ -110,6 +132,41 @@ class Database
         $db->exec('CREATE INDEX IF NOT EXISTS idx_pages_slug ON pages(slug)');
 
         self::seedDefaults();
+
+        try {
+            ArticleRepository::ensureSampleArticles();
+        } catch (Throwable) {
+            // Articles optionnels
+        }
+
+        try {
+            BrandRepository::syncFromProducts();
+        } catch (Throwable) {
+            // Table brands may not be ready yet on first boot edge cases.
+        }
+    }
+
+    private static function migrateUserRoles(): void
+    {
+        $db = self::getInstance();
+
+        try {
+            $db->exec("UPDATE users SET role = 'catalog' WHERE role = 'editor'");
+        } catch (Throwable) {
+            return;
+        }
+
+        $superCount = (int) $db->query("SELECT COUNT(*) FROM users WHERE role = 'super_admin'")->fetchColumn();
+        if ($superCount > 0) {
+            return;
+        }
+
+        $stmt = $db->query("SELECT id FROM users WHERE role = 'admin' ORDER BY id ASC LIMIT 1");
+        $row = $stmt ? $stmt->fetch() : false;
+        if ($row) {
+            $upd = $db->prepare("UPDATE users SET role = 'super_admin' WHERE id = :id");
+            $upd->execute(['id' => (int) $row['id']]);
+        }
     }
 
     private static function seedDefaults(): void
@@ -124,6 +181,7 @@ class Database
             ['politique-livraison', 'Politique de livraison'],
             ['politique-retour', 'Politique de retour'],
             ['comment-commander', 'Comment passer votre commande'],
+            ['politique-cookies', 'Politique de cookies'],
         ];
 
         foreach ($defaultPages as [$slug, $title]) {
@@ -133,6 +191,12 @@ class Database
                 $insert = $db->prepare('INSERT INTO pages (slug, title, content) VALUES (:slug, :title, :content)');
                 $insert->execute(['slug' => $slug, 'title' => $title, 'content' => '']);
             }
+        }
+
+        try {
+            LegalPagesContent::seedIntoDatabase(true);
+        } catch (Throwable) {
+            // Contenu légal optionnel au premier boot
         }
 
         $defaultSettings = [
@@ -149,15 +213,8 @@ class Database
             'chat_n8n_webhook' => '',
             'chat_welcome_message' => 'Bonjour ! Comment pouvons-nous vous aider ?',
             'chat_offline_message' => 'Nous vous répondrons dès que possible.',
-            'promo_text' => 'Livraison nationale — Matériel 100 % authentique — Devis WhatsApp sous 24 h',
-            'hero_video_url' => '',
-            'hero_video_poster' => '',
-            'home_blog_video_1' => 'https://www.youtube.com/embed/6v2L2UGZJAM',
-            'home_blog_video_2' => 'https://www.youtube.com/embed/BCtXzY6T1jw',
-            'social_facebook' => 'https://www.facebook.com/',
-            'social_instagram' => 'https://www.instagram.com/',
-            'social_youtube' => 'https://www.youtube.com/',
-            'social_linkedin' => '',
+            ...SettingRepository::cookieDefaults(),
+            ...SettingRepository::homeDefaults(),
         ];
 
         foreach ($defaultSettings as $key => $value) {

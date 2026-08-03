@@ -27,17 +27,20 @@ if (str_starts_with($uri, '/assets/')) {
     }
 }
 
-// Images uploadées (produits + catégories)
-if (str_starts_with($uri, '/uploads/products/') || str_starts_with($uri, '/uploads/categories/')) {
+// Images / médias uploadés
+if (preg_match('#^/uploads/(products|categories|home|brands|articles)/#', $uri)) {
     $file = $root . $uri;
     if (is_file($file)) {
-        $ext = pathinfo($file, PATHINFO_EXTENSION);
+        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
         $types = [
             'png' => 'image/png',
             'jpg' => 'image/jpeg',
             'jpeg' => 'image/jpeg',
             'webp' => 'image/webp',
             'gif' => 'image/gif',
+            'mp4' => 'video/mp4',
+            'webm' => 'video/webm',
+            'mov' => 'video/quicktime',
         ];
         header('Content-Type: ' . ($types[$ext] ?? 'application/octet-stream'));
         readfile($file);
@@ -64,9 +67,37 @@ if ($uri === '/catalogue.php' || $uri === '/catalogue') {
     return true;
 }
 
+// Qui sommes-nous
+if ($uri === '/a-propos' || $uri === '/qui-sommes-nous') {
+    require $root . '/public/a-propos.php';
+    return true;
+}
+
+// Blog conseils
+if ($uri === '/conseils' || $uri === '/blog') {
+    require $root . '/public/conseils.php';
+    return true;
+}
+
+if (preg_match('#^/article/([a-z0-9-]+)$#', $uri, $matches)) {
+    $_GET['slug'] = $matches[1];
+    require $root . '/public/article.php';
+    return true;
+}
+
 // Chat API
 if ($uri === '/chat-api.php' || $uri === '/api/chat') {
     require $root . '/public/chat-api.php';
+    return true;
+}
+
+// Sitemap & robots (Search Console)
+if ($uri === '/sitemap.xml' || $uri === '/sitemap.php') {
+    require $root . '/public/sitemap.php';
+    return true;
+}
+if ($uri === '/robots.txt' || $uri === '/robots.php') {
+    require $root . '/public/robots.php';
     return true;
 }
 

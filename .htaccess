@@ -1,6 +1,10 @@
 # Apache — rediriger vers le routeur
 <IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # Zones internes non accessibles via URL
+    RewriteRule ^(lib|database|storage|scripts|config|admin/includes)/ - [F,L]
+
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^ router.php [L]
@@ -11,6 +15,18 @@
     Require all denied
 </FilesMatch>
 
+<FilesMatch "^(bootstrap\.php|\.env)$">
+    Require all denied
+</FilesMatch>
+
 <Files ".env">
     Require all denied
 </Files>
+
+# Headers de sécurité (si mod_headers disponible)
+<IfModule mod_headers.c>
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-Content-Type-Options "nosniff"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+</IfModule>

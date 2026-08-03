@@ -3,14 +3,16 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/bootstrap.php';
-Auth::requireAdmin();
+Auth::requireContent();
 
 $pageTitle = 'Articles';
 $currentPage = 'articles';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     if (Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
-        ArticleRepository::delete((int) $_POST['delete_id']);
+        $deleteId = (int) $_POST['delete_id'];
+        ArticleRepository::delete($deleteId);
+        AuditLog::record('article.delete', 'article', $deleteId);
         Helpers::flash('success', 'Article supprimé.');
     }
     Helpers::redirect('/admin/articles/index.php');

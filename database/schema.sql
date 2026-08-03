@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     name TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'editor',
+    role TEXT NOT NULL DEFAULT 'catalog',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -20,6 +20,11 @@ CREATE TABLE IF NOT EXISTS articles (
     excerpt TEXT,
     content TEXT,
     image TEXT,
+    meta_title TEXT,
+    meta_description TEXT,
+    meta_keywords TEXT,
+    focus_keyword TEXT,
+    canonical_url TEXT,
     is_published INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))

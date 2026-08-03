@@ -14,7 +14,7 @@ declare(strict_types=1);
     <div class="container footer-grid">
         <div class="footer-col footer-brand">
             <a href="/" class="logo logo-footer">
-                <?php $logoClass = 'footer-logo-img'; $logoWidth = 160; require __DIR__ . '/site-logo.php'; ?>
+                <?php $logoClass = 'footer-logo-img'; $logoWidth = 160; $logoVariant = 'mark'; require __DIR__ . '/site-logo.php'; ?>
             </a>
             <p class="footer-desc">Matériel photo, vidéo et studio professionnel. Distribution officielle des grandes marques au Maroc.</p>
             <?php if (!empty($socialLinks)): ?>
@@ -32,7 +32,7 @@ declare(strict_types=1);
             <ul>
                 <li><a href="/">Accueil</a></li>
                 <li><a href="/catalogue.php">Catalogue</a></li>
-                <li><a href="/page/mentions-legales">Qui sommes-nous</a></li>
+                <li><a href="/a-propos">Qui sommes-nous</a></li>
                 <li><a href="/#contact">Contact</a></li>
             </ul>
         </div>

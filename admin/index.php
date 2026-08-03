@@ -9,13 +9,17 @@ Auth::requireLogin();
 $pageTitle = 'Tableau de bord';
 $currentPage = 'dashboard';
 
-$stats = AdminStats::dashboard();
+$canCatalog = Auth::canManageCatalog();
+$canContent = Auth::canManageContent();
+$isAdmin = Auth::isAdmin();
+$isSuperAdmin = Auth::isSuperAdmin();
+
+$stats = $canCatalog ? AdminStats::dashboard() : ['products' => ['total' => 0, 'active' => 0, 'out_of_stock' => 0, 'on_sale' => 0, 'coming_soon' => 0, 'in_stock' => 0, 'featured' => 0], 'categories' => ['total' => 0, 'with_products' => 0, 'empty' => 0]];
 $p = $stats['products'];
 $c = $stats['categories'];
-$recentProducts = ProductRepository::recent(5);
+$recentProducts = $canCatalog ? ProductRepository::recent(5) : [];
 $user = Auth::user();
-$isAdmin = Auth::isAdmin();
-$articleCount = $isAdmin ? ArticleRepository::countPublished() : 0;
+$articleCount = $canContent ? ArticleRepository::countPublished() : 0;
 $siteSettings = $isAdmin ? SettingRepository::site() : [];
 $chatSettings = $isAdmin ? SettingRepository::chat() : [];
 
@@ -31,9 +35,18 @@ require __DIR__ . '/includes/header.php';
 
 <section class="dash-hero">
     <div class="dash-hero-content">
-        <p class="dash-hero-greeting">Bonjour, <?= Helpers::e($user['name'] ?? '') ?> 👋</p>
-        <h2 class="dash-hero-title">Bienvenue sur votre espace PHOTOCOM</h2>
-        <p class="dash-hero-sub">Gérez votre catalogue, votre contenu et la configuration du site depuis un seul endroit.</p>
+        <p class="dash-hero-greeting">Bonjour, <?= Helpers::e($user['name'] ?? '') ?></p>
+        <h2 class="dash-hero-title">Espace administration</h2>
+        <p class="dash-hero-sub">
+            <?= Helpers::e(UserRepository::roleLabel((string) ($user['role'] ?? ''))) ?> —
+            <?php if ($isAdmin): ?>
+                catalogue, contenu et configuration du site.
+            <?php elseif ($canContent): ?>
+                gestion des articles du blog Conseils.
+            <?php else: ?>
+                gestion du catalogue produits.
+            <?php endif; ?>
+        </p>
     </div>
     <div class="dash-hero-date">
         <?php
@@ -45,33 +58,34 @@ require __DIR__ . '/includes/header.php';
     </div>
 </section>
 
+<?php if ($canCatalog): ?>
 <div class="dash-stats">
-    <a href="/admin/produits/index.php" class="dash-stat-card dash-stat-blue">
-        <span class="dash-stat-icon">▣</span>
+    <a href="/admin/produits/index.php" class="dash-stat-card dash-stat-accent">
+        <span class="dash-stat-icon"><?= adminIcon('box', 20) ?></span>
         <div>
             <strong><?= $p['total'] ?></strong>
             <span>Produits</span>
         </div>
         <small><?= $p['active'] ?> actifs</small>
     </a>
-    <a href="/admin/categories/index.php" class="dash-stat-card dash-stat-purple">
-        <span class="dash-stat-icon">▤</span>
+    <a href="/admin/categories/index.php" class="dash-stat-card dash-stat-neutral">
+        <span class="dash-stat-icon"><?= adminIcon('layers', 20) ?></span>
         <div>
             <strong><?= $c['total'] ?></strong>
             <span>Catégories</span>
         </div>
         <small><?= $c['with_products'] ?> avec produits</small>
     </a>
-    <a href="/admin/produits/index.php?filter=out_of_stock" class="dash-stat-card dash-stat-red">
-        <span class="dash-stat-icon">!</span>
+    <a href="/admin/produits/index.php?filter=out_of_stock" class="dash-stat-card dash-stat-accent">
+        <span class="dash-stat-icon"><?= adminIcon('alert', 20) ?></span>
         <div>
             <strong><?= $p['out_of_stock'] ?></strong>
             <span>En rupture</span>
         </div>
         <small>À réapprovisionner</small>
     </a>
-    <a href="/admin/produits/index.php?filter=on_sale" class="dash-stat-card dash-stat-amber">
-        <span class="dash-stat-icon">%</span>
+    <a href="/admin/produits/index.php?filter=on_sale" class="dash-stat-card dash-stat-soft">
+        <span class="dash-stat-icon"><?= adminIcon('percent', 20) ?></span>
         <div>
             <strong><?= $p['on_sale'] ?></strong>
             <span>Promotions</span>
@@ -79,81 +93,110 @@ require __DIR__ . '/includes/header.php';
         <small>Produits en promo</small>
     </a>
 </div>
-
-<?php if ($isAdmin): ?>
-<section class="dash-section">
-    <h3 class="dash-section-title">Modules</h3>
-    <div class="module-grid">
-        <a href="/admin/produits/index.php" class="module-card">
-            <span class="module-icon module-icon-blue">▣</span>
-            <h4>Produits</h4>
-            <p>Gérer le catalogue, les stocks et les prix.</p>
-        </a>
-        <a href="/admin/categories/index.php" class="module-card">
-            <span class="module-icon module-icon-purple">▤</span>
-            <h4>Catégories</h4>
-            <p>Organiser la hiérarchie et les visuels.</p>
-        </a>
-        <a href="/admin/articles/index.php" class="module-card">
-            <span class="module-icon module-icon-green">✎</span>
-            <h4>Articles</h4>
-            <p><?= $articleCount ?> publié<?= $articleCount > 1 ? 's' : '' ?> — blog et actualités.</p>
-        </a>
-        <a href="/admin/pages/index.php" class="module-card">
-            <span class="module-icon module-icon-slate">📄</span>
-            <h4>Pages légales</h4>
-            <p>Confidentialité et conditions générales.</p>
-        </a>
-        <a href="/admin/settings/site.php" class="module-card">
-            <span class="module-icon module-icon-cyan">⚙</span>
-            <h4>Infos du site</h4>
-            <p>Contact, adresse, horaires et identité.</p>
-        </a>
-        <a href="/admin/chat/index.php" class="module-card">
-            <span class="module-icon module-icon-pink">💬</span>
-            <h4>Chat n8n</h4>
-            <p><?= $chatSettings['chat_enabled'] === '1' ? 'Activé' : 'Désactivé' ?> — webhook n8n.</p>
-        </a>
-        <a href="/admin/users/index.php" class="module-card">
-            <span class="module-icon module-icon-orange">👤</span>
-            <h4>Utilisateurs</h4>
-            <p>Équipe admin et éditeurs du catalogue.</p>
-        </a>
-        <a href="/" target="_blank" class="module-card">
-            <span class="module-icon module-icon-muted">↗</span>
-            <h4>Voir le site</h4>
-            <p>Aperçu public de <?= Helpers::e($siteSettings['site_name'] ?? Helpers::config()['name']) ?>.</p>
-        </a>
-    </div>
-</section>
-<?php else: ?>
-<section class="dash-section">
-    <h3 class="dash-section-title">Accès rapide</h3>
-    <div class="module-grid">
-        <a href="/admin/produits/create.php" class="module-card">
-            <span class="module-icon module-icon-blue">+</span>
-            <h4>Nouveau produit</h4>
-            <p>Ajouter un produit au catalogue.</p>
-        </a>
-        <a href="/admin/categories/create.php" class="module-card">
-            <span class="module-icon module-icon-purple">+</span>
-            <h4>Nouvelle catégorie</h4>
-            <p>Créer une catégorie ou sous-catégorie.</p>
-        </a>
-        <a href="/admin/produits/index.php" class="module-card">
-            <span class="module-icon module-icon-blue">▣</span>
-            <h4>Tous les produits</h4>
-            <p><?= $p['total'] ?> produits dans le catalogue.</p>
-        </a>
-        <a href="/admin/categories/index.php" class="module-card">
-            <span class="module-icon module-icon-purple">▤</span>
-            <h4>Toutes les catégories</h4>
-            <p><?= $c['total'] ?> catégories organisées.</p>
-        </a>
-    </div>
-</section>
+<?php elseif ($canContent): ?>
+<div class="dash-stats">
+    <a href="/admin/articles/index.php" class="dash-stat-card dash-stat-accent">
+        <span class="dash-stat-icon"><?= adminIcon('pen', 20) ?></span>
+        <div>
+            <strong><?= $articleCount ?></strong>
+            <span>Articles publiés</span>
+        </div>
+        <small>Blog Conseils</small>
+    </a>
+</div>
 <?php endif; ?>
 
+<section class="dash-section">
+    <h3 class="dash-section-title"><?= $isAdmin ? 'Modules' : 'Accès rapide' ?></h3>
+    <div class="module-grid">
+        <?php if ($canCatalog): ?>
+            <a href="/admin/produits/index.php" class="module-card">
+                <span class="module-icon module-icon-accent"><?= adminIcon('box') ?></span>
+                <h4>Produits</h4>
+                <p>Gérer le catalogue, les stocks et les prix.</p>
+            </a>
+            <a href="/admin/categories/index.php" class="module-card">
+                <span class="module-icon"><?= adminIcon('layers') ?></span>
+                <h4>Catégories</h4>
+                <p>Organiser la hiérarchie et les visuels.</p>
+            </a>
+            <?php if (!$isAdmin): ?>
+                <a href="/admin/produits/create.php" class="module-card">
+                    <span class="module-icon module-icon-accent"><?= adminIcon('plus') ?></span>
+                    <h4>Nouveau produit</h4>
+                    <p>Ajouter un produit au catalogue.</p>
+                </a>
+                <a href="/admin/marques/index.php" class="module-card">
+                    <span class="module-icon"><?= adminIcon('tag') ?></span>
+                    <h4>Marques</h4>
+                    <p>Gérer les marques du catalogue.</p>
+                </a>
+            <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if ($canContent): ?>
+            <a href="/admin/articles/index.php" class="module-card">
+                <span class="module-icon"><?= adminIcon('pen') ?></span>
+                <h4>Articles</h4>
+                <p><?= $articleCount ?> publié<?= $articleCount > 1 ? 's' : '' ?> — blog et actualités.</p>
+            </a>
+            <?php if (!$isAdmin): ?>
+                <a href="/admin/articles/create.php" class="module-card">
+                    <span class="module-icon module-icon-accent"><?= adminIcon('plus') ?></span>
+                    <h4>Nouvel article</h4>
+                    <p>Rédiger un article pour Conseils.</p>
+                </a>
+            <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if ($isAdmin): ?>
+            <a href="/admin/home/index.php" class="module-card">
+                <span class="module-icon"><?= adminIcon('home') ?></span>
+                <h4>Page d'accueil</h4>
+                <p>Hero, sections, vidéos, confiance et newsletter.</p>
+            </a>
+            <a href="/admin/pages/index.php" class="module-card">
+                <span class="module-icon"><?= adminIcon('doc') ?></span>
+                <h4>Pages légales</h4>
+                <p>Confidentialité et conditions générales.</p>
+            </a>
+            <a href="/admin/settings/site.php" class="module-card">
+                <span class="module-icon"><?= adminIcon('settings') ?></span>
+                <h4>Infos du site</h4>
+                <p>Contact, adresse, horaires et identité.</p>
+            </a>
+            <a href="/admin/settings/files.php" class="module-card">
+                <span class="module-icon"><?= adminIcon('folder') ?></span>
+                <h4>Fichiers</h4>
+                <p>Médias uploadés — ajouter ou supprimer.</p>
+            </a>
+            <a href="/admin/chat/index.php" class="module-card">
+                <span class="module-icon"><?= adminIcon('chat') ?></span>
+                <h4>Chat n8n</h4>
+                <p><?= ($chatSettings['chat_enabled'] ?? '0') === '1' ? 'Activé' : 'Désactivé' ?> — webhook n8n.</p>
+            </a>
+            <a href="/admin/users/index.php" class="module-card">
+                <span class="module-icon"><?= adminIcon('user') ?></span>
+                <h4>Utilisateurs</h4>
+                <p>Rôles et accès de l’équipe.</p>
+            </a>
+            <?php if ($isSuperAdmin): ?>
+                <a href="/admin/settings/audit-log.php" class="module-card">
+                    <span class="module-icon"><?= adminIcon('log') ?></span>
+                    <h4>Journal d'activité</h4>
+                    <p>Qui a modifié quoi, et quand.</p>
+                </a>
+            <?php endif; ?>
+            <a href="/" target="_blank" class="module-card">
+                <span class="module-icon module-icon-muted"><?= adminIcon('external') ?></span>
+                <h4>Voir le site</h4>
+                <p>Aperçu public de <?= Helpers::e($siteSettings['site_name'] ?? Helpers::config()['name']) ?>.</p>
+            </a>
+        <?php endif; ?>
+    </div>
+</section>
+
+<?php if ($canCatalog): ?>
 <div class="grid-2 dash-grid">
     <section class="panel panel-modern">
         <div class="panel-header">
@@ -223,5 +266,6 @@ require __DIR__ . '/includes/header.php';
         </div>
     </section>
 </div>
+<?php endif; ?>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>

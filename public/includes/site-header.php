@@ -3,16 +3,26 @@
 declare(strict_types=1);
 
 /** @var array $menuTree */
+/** @var array $home */
 /** @var string $siteName */
 /** @var string $whatsapp */
 /** @var array $socialLinks */
 $searchQuery = $searchQuery ?? trim($_GET['q'] ?? '');
 $activeCatSlug = $activeCatSlug ?? trim($_GET['cat'] ?? '');
+$promoEnabled = ($home['promo_enabled'] ?? '1') === '1';
+$searchVisible = ($home['search_visible'] ?? '1') === '1';
+$logoVisible = ($home['logo_visible'] ?? '1') === '1';
+$navVisible = ($home['nav_visible'] ?? '1') === '1';
+$navAlign = $home['nav_links_align'] ?? 'left';
+$megaAlign = $home['mega_nav_align'] ?? 'stretch';
+$headerOrder = SettingRepository::parseHeaderOrder($home['header_order'] ?? 'logo,nav,search');
 ?>
+<?php require __DIR__ . '/site-analytics-body.php'; ?>
 <header class="site-header">
+    <?php if ($promoEnabled): ?>
     <div class="top-bar">
         <div class="container top-bar-inner">
-            <p class="top-bar-promo"><?= Helpers::e($siteName) ?> — Expert photo & vidéo au Maroc</p>
+            <p class="top-bar-promo"><?= Helpers::e($promoText ?: ($siteName . ' — Expert photo & vidéo au Maroc')) ?></p>
             <div class="top-bar-actions">
                 <div class="lang-switch" aria-label="Langue">
                     <span class="lang-active">FR</span>
@@ -33,29 +43,34 @@ $activeCatSlug = $activeCatSlug ?? trim($_GET['cat'] ?? '');
             </div>
         </div>
     </div>
+    <?php endif; ?>
 </header>
 
 <div class="header-sticky">
         <div class="header-main">
-            <div class="container header-main-inner">
-                <a href="/" class="logo" aria-label="<?= Helpers::e($siteName) ?>">
-                    <?php $logoClass = 'header-logo-img'; $logoWidth = 148; require __DIR__ . '/site-logo.php'; ?>
-                </a>
-
-                <nav class="header-nav" aria-label="Navigation">
-                    <a href="/">Accueil</a>
-                    <a href="/catalogue.php">Catalogue</a>
-                    <a href="/page/mentions-legales">Qui sommes-nous</a>
-                    <a href="/#conseils">Conseils</a>
-                    <a href="/#contact">Contact</a>
-                </nav>
-
-                <form class="header-search" action="/catalogue.php" method="get" role="search">
-                    <input type="search" name="q" value="<?= Helpers::e($searchQuery) ?>" placeholder="Rechercher un produit, une marque…" aria-label="Rechercher">
-                    <button type="submit" aria-label="Rechercher">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-                    </button>
-                </form>
+            <div class="container header-main-inner header-nav-align-<?= Helpers::e($navAlign) ?><?= $searchVisible ? '' : ' no-search' ?>">
+                <?php foreach ($headerOrder as $part): ?>
+                    <?php if ($part === 'logo' && $logoVisible): ?>
+                        <a href="/" class="logo" aria-label="<?= Helpers::e($siteName) ?>">
+                            <?php $logoClass = 'header-logo-img'; $logoWidth = 148; require __DIR__ . '/site-logo.php'; ?>
+                        </a>
+                    <?php elseif ($part === 'nav' && $navVisible): ?>
+                        <nav class="header-nav" aria-label="Navigation">
+                            <a href="/">Accueil</a>
+                            <a href="/catalogue.php">Catalogue</a>
+                            <a href="/a-propos">Qui sommes-nous</a>
+                            <a href="/conseils">Conseils</a>
+                            <a href="/#contact">Contact</a>
+                        </nav>
+                    <?php elseif ($part === 'search' && $searchVisible): ?>
+                        <form class="header-search" action="/catalogue.php" method="get" role="search">
+                            <input type="search" name="q" value="<?= Helpers::e($searchQuery) ?>" placeholder="Rechercher un produit, une marque…" aria-label="Rechercher">
+                            <button type="submit" aria-label="Rechercher">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                <?php endforeach; ?>
 
                 <div class="header-actions">
                     <button type="button" class="header-icon-btn mega-menu-toggle" aria-label="Ouvrir le menu catégories" aria-expanded="false">
@@ -66,7 +81,7 @@ $activeCatSlug = $activeCatSlug ?? trim($_GET['cat'] ?? '');
         </div>
 
         <?php if (!empty($menuTree)): ?>
-        <nav class="mega-nav" data-mega-nav aria-label="Catégories produits">
+        <nav class="mega-nav mega-nav-align-<?= Helpers::e($megaAlign) ?>" data-mega-nav aria-label="Catégories produits">
             <ul class="mega-nav-list">
                 <?php foreach ($menuTree as $index => $root): ?>
                     <?php $hasChildren = !empty($root['children']); ?>

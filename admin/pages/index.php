@@ -13,8 +13,18 @@ $pages = PageRepository::all();
 require dirname(__DIR__) . '/includes/header.php';
 ?>
 
+<?php if ($message = Helpers::flash('success')): ?>
+    <div class="alert alert-success"><?= Helpers::e($message) ?></div>
+<?php endif; ?>
+
 <div class="panel">
-    <p class="text-muted">Gérez le contenu des pages légales affichées sur le site public.</p>
+    <div class="panel-header" style="justify-content:space-between;gap:1rem;flex-wrap:wrap">
+        <p class="text-muted" style="margin:0">Gérez le contenu des pages légales affichées sur le site public.</p>
+        <form method="post" action="/admin/pages/seed.php" onsubmit="return confirm('Remplir les pages vides avec le contenu type PHOTOCOM ? Les pages déjà rédigées ne seront pas écrasées.');">
+            <?= Auth::csrfField() ?>
+            <button type="submit" class="btn btn-sm">Réinjecter le contenu type (pages vides)</button>
+        </form>
+    </div>
 
     <table class="data-table">
         <thead>

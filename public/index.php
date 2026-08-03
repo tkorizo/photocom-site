@@ -7,34 +7,63 @@ require __DIR__ . '/includes/init.php';
 
 $featuredProducts = [];
 $bestsellers = [];
-$blogArticles = [];
 $brandList = [];
+$productsCount = 0;
 
 try {
     Database::initialize();
     $productsCount = ProductRepository::countActive();
-    $featuredProducts = ProductRepository::featured(2);
-    if (count($featuredProducts) < 2) {
-        $extra = ProductRepository::recent(2 - count($featuredProducts));
-        $featuredProducts = array_merge($featuredProducts, $extra);
+
+    $featuredIds = SettingRepository::parseIdList($home['featured_product_ids'] ?? '');
+    $featuredLimit = max(1, min(8, (int) ($home['featured_count'] ?? 2)));
+    if ($featuredIds !== []) {
+        $featuredProducts = array_slice(ProductRepository::findByIdsOrdered($featuredIds), 0, $featuredLimit);
+    } else {
+        $featuredProducts = ProductRepository::featured($featuredLimit);
+        if (count($featuredProducts) < $featuredLimit) {
+            $extra = ProductRepository::recent($featuredLimit - count($featuredProducts));
+            $featuredProducts = array_merge($featuredProducts, $extra);
+        }
     }
-    $bestsellers = ProductRepository::bestsellers(8);
-    $blogArticles = ArticleRepository::publishedRecent(2);
-    $brandList = ProductRepository::publicFilterMeta(null)['brands'] ?? [];
+
+    $bestsellerIds = SettingRepository::parseIdList($home['bestsellers_product_ids'] ?? '');
+    $bestsellerLimit = max(1, min(16, (int) ($home['bestsellers_count'] ?? 8)));
+    if ($bestsellerIds !== []) {
+        $bestsellers = array_slice(ProductRepository::findByIdsOrdered($bestsellerIds), 0, $bestsellerLimit);
+    } else {
+        $bestsellers = ProductRepository::bestsellers($bestsellerLimit);
+    }
+
+    $brandList = BrandRepository::forHome();
 } catch (Throwable) {
     $productsCount = 0;
     $menuTree = $menuTree ?? [];
     $brandList = [];
 }
 
-if (!empty($blogArticles)) {
-    foreach ($blogArticles as $i => $article) {
-        if (isset($blogVideos[$i])) {
-            $blogVideos[$i]['title'] = $article['title'];
-            if ($article['excerpt']) {
-                $blogVideos[$i]['excerpt'] = $article['excerpt'];
-            }
-        }
+$isOn = static fn (string $key): bool => ($home[$key] ?? '0') === '1';
+
+$trustItems = [];
+for ($i = 1; $i <= 4; $i++) {
+    $trustItems[] = [
+        'title' => $home['trust_' . $i . '_title'],
+        'text' => $home['trust_' . $i . '_text'],
+        'link_label' => $home['trust_' . $i . '_link_label'],
+        'link_url' => $home['trust_' . $i . '_link_url'],
+    ];
+}
+
+$heroAlign = $home['hero_align'] ?? 'left';
+$heroVertical = $home['hero_vertical'] ?? 'center';
+$heroHeight = $home['hero_height'] ?? 'medium';
+$heroOverlay = max(0, min(90, (int) ($home['hero_overlay'] ?? 55)));
+$heroMediaType = $home['hero_media_type'] ?? 'none';
+$heroImageUrl = $home['hero_image_url'] ?? '';
+if ($heroMediaType === 'none') {
+    if ($heroVideoUrl !== '') {
+        $heroMediaType = 'video';
+    } elseif ($heroImageUrl !== '') {
+        $heroMediaType = 'image';
     }
 }
 ?>
@@ -43,8 +72,14 @@ if (!empty($blogArticles)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="<?= Helpers::e($siteName) ?> — Boutique photo & vidéo professionnelle à Casablanca.">
-    <title><?= Helpers::e($siteName) ?> — Matériel Photo & Vidéo</title>
+    <?php
+    $seoTitle = trim((string) ($site['seo_title'] ?? '')) ?: $siteName;
+    $seoDescription = trim((string) ($site['seo_description'] ?? '')) ?: ($tagline ?? '');
+    $seoKeywords = trim((string) ($site['seo_keywords'] ?? ''));
+    $seoType = 'website';
+    require __DIR__ . '/includes/site-seo.php';
+    ?>
+    <?php require __DIR__ . '/includes/site-favicon.php'; ?>
     <link rel="stylesheet" href="/assets/css/public.css">
     <link rel="stylesheet" href="/assets/css/chat.css">
 </head>
@@ -54,39 +89,60 @@ if (!empty($blogArticles)) {
     <?php require __DIR__ . '/includes/site-header.php'; ?>
 
     <main id="main">
-        <section class="hero-video" aria-label="Présentation">
+        <?php if ($isOn('hero_enabled')): ?>
+        <section
+            class="hero-video hero-align-<?= Helpers::e($heroAlign) ?> hero-vertical-<?= Helpers::e($heroVertical) ?> hero-height-<?= Helpers::e($heroHeight) ?><?= $heroMediaType === 'image' ? ' has-hero-image' : '' ?>"
+            aria-label="Présentation"
+            style="--hero-overlay: <?= $heroOverlay ?>;<?= $heroMediaType === 'image' && $heroImageUrl !== '' ? ' --hero-image: url(' . Helpers::e($heroImageUrl) . ');' : '' ?>"
+        >
             <div class="hero-video-wrap">
-                <?php if ($heroVideoUrl): ?>
+                <?php if ($heroMediaType === 'video' && $heroVideoUrl): ?>
                     <video class="hero-video-el" autoplay muted loop playsinline poster="<?= Helpers::e($heroVideoPoster) ?>">
                         <source src="<?= Helpers::e($heroVideoUrl) ?>" type="video/mp4">
                     </video>
+                    <div class="hero-video-overlay"></div>
+                    <div class="hero-video-caption container">
+                        <span class="hero-kicker"><?= Helpers::e($home['hero_kicker']) ?></span>
+                        <h1><?= Helpers::e($home['hero_title']) ?></h1>
+                        <?php if ($isOn('hero_show_subtitle')): ?>
+                            <p><?= Helpers::e($home['hero_subtitle'] ?: $tagline) ?></p>
+                        <?php endif; ?>
+                        <a href="<?= Helpers::e($home['hero_cta_url'] ?: '/catalogue.php') ?>" class="btn btn-primary"><?= Helpers::e($home['hero_cta_label']) ?></a>
+                    </div>
+                <?php elseif ($heroMediaType === 'image' && $heroImageUrl !== ''): ?>
+                    <div class="hero-image-el" aria-hidden="true"></div>
+                    <div class="hero-video-overlay"></div>
+                    <div class="hero-video-caption container">
+                        <span class="hero-kicker"><?= Helpers::e($home['hero_kicker']) ?></span>
+                        <h1><?= Helpers::e($home['hero_title']) ?></h1>
+                        <?php if ($isOn('hero_show_subtitle')): ?>
+                            <p><?= Helpers::e($home['hero_subtitle'] ?: $tagline) ?></p>
+                        <?php endif; ?>
+                        <a href="<?= Helpers::e($home['hero_cta_url'] ?: '/catalogue.php') ?>" class="btn btn-primary"><?= Helpers::e($home['hero_cta_label']) ?></a>
+                    </div>
                 <?php else: ?>
                     <div class="hero-video-fallback">
                         <div class="hero-video-fallback-inner">
-                            <span class="hero-kicker">Expert photo & vidéo</span>
-                            <h1>Matériel professionnel au Maroc</h1>
-                            <p><?= Helpers::e($tagline) ?></p>
-                            <a href="/catalogue.php" class="btn btn-primary">Découvrir le catalogue</a>
+                            <span class="hero-kicker"><?= Helpers::e($home['hero_kicker']) ?></span>
+                            <h1><?= Helpers::e($home['hero_title']) ?></h1>
+                            <?php if ($isOn('hero_show_subtitle')): ?>
+                                <p><?= Helpers::e($home['hero_subtitle'] ?: $tagline) ?></p>
+                            <?php endif; ?>
+                            <a href="<?= Helpers::e($home['hero_cta_url'] ?: '/catalogue.php') ?>" class="btn btn-primary"><?= Helpers::e($home['hero_cta_label']) ?></a>
                         </div>
                     </div>
-                <?php endif; ?>
-                <div class="hero-video-overlay"></div>
-                <?php if ($heroVideoUrl): ?>
-                    <div class="hero-video-caption container">
-                        <span class="hero-kicker">Expert photo & vidéo</span>
-                        <h1>Matériel professionnel au Maroc</h1>
-                        <a href="/catalogue.php" class="btn btn-primary">Découvrir le catalogue</a>
-                    </div>
+                    <div class="hero-video-overlay"></div>
                 <?php endif; ?>
             </div>
         </section>
+        <?php endif; ?>
 
-        <?php if (!empty($featuredProducts)): ?>
-        <section class="home-section section-light" id="vedettes">
+        <?php if ($isOn('featured_enabled') && !empty($featuredProducts)): ?>
+        <section class="home-section section-light section-align-<?= Helpers::e($home['featured_align']) ?>" id="vedettes">
             <div class="container">
                 <header class="section-head">
-                    <span class="section-label">Sélection</span>
-                    <h2>Produits en vedette</h2>
+                    <span class="section-label"><?= Helpers::e($home['featured_label']) ?></span>
+                    <h2><?= Helpers::e($home['featured_title']) ?></h2>
                 </header>
                 <div class="featured-grid">
                     <?php foreach (array_slice($featuredProducts, 0, 2) as $product): ?>
@@ -118,15 +174,19 @@ if (!empty($blogArticles)) {
         </section>
         <?php endif; ?>
 
-        <section class="home-section section-dark" id="conseils">
+        <?php if ($isOn('conseils_enabled')): ?>
+        <section class="home-section section-dark section-align-<?= Helpers::e($home['conseils_align']) ?>" id="conseils">
             <div class="container">
                 <header class="section-head">
-                    <span class="section-label">Conseils</span>
-                    <h2>Nos experts vous guident</h2>
-                    <p class="section-sub">Tutoriels et astuces pour tirer le meilleur de votre matériel.</p>
+                    <span class="section-label"><?= Helpers::e($home['conseils_label']) ?></span>
+                    <h2><?= Helpers::e($home['conseils_title']) ?></h2>
+                    <?php if ($home['conseils_subtitle'] !== ''): ?>
+                        <p class="section-sub"><?= Helpers::e($home['conseils_subtitle']) ?></p>
+                    <?php endif; ?>
                 </header>
                 <div class="blog-videos-grid">
                     <?php foreach ($blogVideos as $video): ?>
+                        <?php if ($video['url'] === '') continue; ?>
                         <article class="blog-video-card">
                             <div class="blog-video-frame">
                                 <iframe src="<?= Helpers::e($video['url']) ?>" title="<?= Helpers::e($video['title']) ?>" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
@@ -140,20 +200,28 @@ if (!empty($blogArticles)) {
                         </article>
                     <?php endforeach; ?>
                 </div>
+                <p style="margin-top:1.75rem">
+                    <a href="/conseils" class="btn btn-outline-light">Tous les conseils</a>
+                </p>
             </div>
         </section>
+        <?php endif; ?>
 
-        <?php if (!empty($brandList)): ?>
-        <section class="home-section section-light" id="marques">
+        <?php if ($isOn('brands_enabled') && !empty($brandList)): ?>
+        <section class="home-section section-light section-align-<?= Helpers::e($home['brands_align']) ?>" id="marques">
             <div class="container">
                 <header class="section-head">
-                    <span class="section-label">Marques</span>
-                    <h2>Parcourir par marque</h2>
+                    <span class="section-label"><?= Helpers::e($home['brands_label']) ?></span>
+                    <h2><?= Helpers::e($home['brands_title']) ?></h2>
                 </header>
                 <div class="brand-blocks">
                     <?php foreach ($brandList as $brand): ?>
-                        <a href="/catalogue.php?brand=<?= urlencode($brand) ?>" class="brand-block">
-                            <h3><?= Helpers::e($brand) ?></h3>
+                        <a href="/catalogue.php?brand=<?= urlencode($brand['name']) ?>" class="brand-block<?= !empty($brand['logo']) ? ' brand-block--logo' : '' ?>" title="<?= Helpers::e($brand['name']) ?>">
+                            <?php if (!empty($brand['logo'])): ?>
+                                <img src="<?= Helpers::e($brand['logo']) ?>" alt="<?= Helpers::e($brand['name']) ?>" class="brand-logo-img" loading="lazy">
+                            <?php else: ?>
+                                <h3><?= Helpers::e($brand['name']) ?></h3>
+                            <?php endif; ?>
                         </a>
                     <?php endforeach; ?>
                 </div>
@@ -161,12 +229,12 @@ if (!empty($blogArticles)) {
         </section>
         <?php endif; ?>
 
-        <?php if (!empty($bestsellers)): ?>
-        <section class="home-section section-muted" id="meilleures-ventes">
+        <?php if ($isOn('bestsellers_enabled') && !empty($bestsellers)): ?>
+        <section class="home-section section-muted section-align-<?= Helpers::e($home['bestsellers_align']) ?>" id="meilleures-ventes">
             <div class="container">
                 <header class="section-head">
-                    <span class="section-label">Top ventes</span>
-                    <h2>Meilleures ventes</h2>
+                    <span class="section-label"><?= Helpers::e($home['bestsellers_label']) ?></span>
+                    <h2><?= Helpers::e($home['bestsellers_title']) ?></h2>
                 </header>
                 <div class="products-grid products-grid-compact">
                     <?php foreach ($bestsellers as $product): ?>
@@ -192,60 +260,50 @@ if (!empty($blogArticles)) {
                     <?php endforeach; ?>
                 </div>
                 <p class="section-cta">
-                    <a href="/catalogue.php" class="btn btn-outline">Voir tout le catalogue<?= $productsCount ? ' (' . $productsCount . ' produits)' : '' ?></a>
+                    <a href="/catalogue.php" class="btn btn-outline"><?= Helpers::e($home['catalogue_cta_label']) ?><?= $productsCount ? ' (' . $productsCount . ' produits)' : '' ?></a>
                 </p>
             </div>
         </section>
         <?php endif; ?>
 
+        <?php if ($isOn('trust_enabled')): ?>
         <section class="trust-band">
             <div class="container trust-grid">
-                <article class="trust-item">
-                    <span class="trust-icon">01</span>
-                    <h3>Livraison</h3>
-                    <p>Expédition sécurisée partout au Maroc. Retrait possible en magasin à Casablanca.</p>
-                    <a href="/page/politique-livraison">En savoir plus</a>
-                </article>
-                <article class="trust-item">
-                    <span class="trust-icon">02</span>
-                    <h3>Retours</h3>
-                    <p>Produits neufs sous emballage d'origine. Conditions de retour transparentes.</p>
-                    <a href="/page/politique-retour">En savoir plus</a>
-                </article>
-                <article class="trust-item">
-                    <span class="trust-icon">03</span>
-                    <h3>Commander</h3>
-                    <p>Parcourez le catalogue, contactez-nous sur WhatsApp et recevez votre devis.</p>
-                    <a href="/page/comment-commander">En savoir plus</a>
-                </article>
-                <article class="trust-item">
-                    <span class="trust-icon">04</span>
-                    <h3>Garantie</h3>
-                    <p>Matériel 100 % authentique avec service après-vente et support technique.</p>
-                    <a href="/#contact">Nous contacter</a>
-                </article>
+                <?php foreach ($trustItems as $index => $item): ?>
+                    <article class="trust-item">
+                        <span class="trust-icon"><?= str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) ?></span>
+                        <h3><?= Helpers::e($item['title']) ?></h3>
+                        <p><?= Helpers::e($item['text']) ?></p>
+                        <?php if ($item['link_label'] !== '' && $item['link_url'] !== ''): ?>
+                            <a href="<?= Helpers::e($item['link_url']) ?>"><?= Helpers::e($item['link_label']) ?></a>
+                        <?php endif; ?>
+                    </article>
+                <?php endforeach; ?>
             </div>
         </section>
+        <?php endif; ?>
 
-        <section class="newsletter-section" id="newsletter">
+        <?php if ($isOn('newsletter_enabled')): ?>
+        <section class="newsletter-section section-align-<?= Helpers::e($home['newsletter_align']) ?>" id="newsletter">
             <div class="container newsletter-inner">
                 <div class="newsletter-copy">
-                    <span class="section-label section-label-dark">Newsletter</span>
-                    <h2>Restez informé</h2>
-                    <p>Nouveautés, promotions et conseils photo directement dans votre boîte mail.</p>
+                    <span class="section-label section-label-dark"><?= Helpers::e($home['newsletter_label']) ?></span>
+                    <h2><?= Helpers::e($home['newsletter_title']) ?></h2>
+                    <p><?= Helpers::e($home['newsletter_text']) ?></p>
                 </div>
                 <form class="newsletter-form" action="#" method="post">
                     <label class="sr-only" for="newsletter-email">Adresse e-mail</label>
                     <input type="email" id="newsletter-email" name="email" placeholder="Votre adresse e-mail" required>
-                    <button type="submit" class="btn btn-primary">S'inscrire</button>
+                    <button type="submit" class="btn btn-primary"><?= Helpers::e($home['newsletter_button']) ?></button>
                 </form>
             </div>
         </section>
+        <?php endif; ?>
     </main>
 
     <?php require __DIR__ . '/includes/site-footer.php'; ?>
-
     <?php require __DIR__ . '/includes/site-chat.php'; ?>
+    <?php require __DIR__ . '/includes/site-cookies.php'; ?>
     <script src="/assets/js/mega-menu.js"></script>
     <script src="/assets/js/chat.js"></script>
 </body>

@@ -10,7 +10,9 @@ class ProductRepository
         ?string $search = null,
         ?string $status = null,
         ?int $categoryId = null,
-        ?string $filter = null
+        ?string $filter = null,
+        ?string $brand = null,
+        ?string $adminLabel = null
     ): array {
         $offset = max(0, ($page - 1) * $perPage);
         $where = [];
@@ -28,6 +30,16 @@ class ProductRepository
         if ($categoryId) {
             $where[] = 'EXISTS (SELECT 1 FROM product_categories pc WHERE pc.product_id = p.id AND pc.category_id = :category_id)';
             $params['category_id'] = $categoryId;
+        }
+        if ($brand) {
+            $where[] = 'p.brand = :brand';
+            $params['brand'] = $brand;
+        }
+        if ($adminLabel === 'none') {
+            $where[] = '(p.admin_label IS NULL OR p.admin_label = \'\')';
+        } elseif (ProductLabel::isValid($adminLabel)) {
+            $where[] = 'p.admin_label = :admin_label';
+            $params['admin_label'] = $adminLabel;
         }
 
         match ($filter) {
@@ -230,7 +242,8 @@ class ProductRepository
 
     public static function create(array $data): int
     {
-        $slug = $data['slug'] ?? Helpers::uniqueSlug('products', $data['name']);
+        $slug = trim((string) ($data['slug'] ?? ''));
+        $slug = $slug !== '' ? Helpers::slugify($slug) : Helpers::slugify((string) $data['name']);
         $stmt = Database::getInstance()->prepare(
             'INSERT INTO products (
                 name, slug, description, short_description, price, regular_price, sale_price,
@@ -256,7 +269,8 @@ class ProductRepository
 
     public static function update(int $id, array $data): bool
     {
-        $slug = $data['slug'] ?? Helpers::uniqueSlug('products', $data['name'], $id);
+        $slug = trim((string) ($data['slug'] ?? ''));
+        $slug = $slug !== '' ? Helpers::slugify($slug) : Helpers::slugify((string) $data['name']);
         $params = self::bindParams($data, $slug);
         $params['id'] = $id;
         unset($params['wordpress_id']);
@@ -293,32 +307,76 @@ class ProductRepository
             'is_coming_soon' => 'bool',
             'is_active' => 'bool',
             'manage_stock' => 'bool',
+            'featured' => 'bool',
+            'on_sale' => 'bool',
+            'hide_add_to_cart' => 'bool',
+            'price' => 'float',
+            'regular_price' => 'float',
+            'sale_price' => 'float',
+            'name' => 'string',
+            'sku' => 'string',
+            'brand' => 'string',
+            'stock_status' => 'enum:instock,outofstock,onbackorder',
+            'catalog_visibility' => 'enum:visible,catalog,search,hidden',
+            'category_id' => 'int',
+            'admin_label' => 'label',
         ];
 
         foreach ($allowed as $field => $type) {
             if (!array_key_exists($field, $data)) {
                 continue;
             }
+            $value = $data[$field];
             $fields[] = "{$field} = :{$field}";
+
             if ($type === 'bool') {
-                $params[$field] = !empty($data[$field]) ? 1 : 0;
+                $params[$field] = !empty($value) ? 1 : 0;
+            } elseif ($type === 'int') {
+                $params[$field] = ($value === '' || $value === null) ? null : (int) $value;
+            } elseif ($type === 'float') {
+                $params[$field] = ($value === '' || $value === null) ? null : (float) $value;
+            } elseif (str_starts_with($type, 'enum:')) {
+                $options = explode(',', substr($type, 5));
+                $params[$field] = in_array((string) $value, $options, true) ? (string) $value : $options[0];
+            } elseif ($type === 'label') {
+                $params[$field] = ProductLabel::normalize(is_string($value) ? $value : (string) ($value ?? ''));
             } else {
-                $params[$field] = $data[$field] !== '' && $data[$field] !== null ? (int) $data[$field] : null;
+                $params[$field] = trim((string) ($value ?? ''));
             }
         }
 
-        if (empty($fields)) {
-            return false;
-        }
-
-        if (isset($data['is_out_of_stock'])) {
-            $fields[] = "stock_status = :stock_status";
+        if (isset($data['is_out_of_stock']) && !isset($data['stock_status'])) {
+            $fields[] = 'stock_status = :stock_status';
             $params['stock_status'] = !empty($data['is_out_of_stock']) ? 'outofstock' : 'instock';
         }
 
-        $sql = 'UPDATE products SET ' . implode(', ', $fields) . ", updated_at = datetime('now') WHERE id = :id";
-        $stmt = Database::getInstance()->prepare($sql);
-        return $stmt->execute($params);
+        if (empty($fields) && !array_key_exists('category_ids', $data)) {
+            return false;
+        }
+
+        $ok = true;
+        if (!empty($fields)) {
+            $sql = 'UPDATE products SET ' . implode(', ', $fields) . ", updated_at = datetime('now') WHERE id = :id";
+            $stmt = Database::getInstance()->prepare($sql);
+            $ok = $stmt->execute($params);
+        }
+
+        if (array_key_exists('category_ids', $data)) {
+            $categoryIds = is_array($data['category_ids']) ? $data['category_ids'] : [];
+            ProductCategoryRepository::syncForProduct($id, $categoryIds);
+            if ($categoryIds !== []) {
+                $primary = (int) $categoryIds[0];
+                Database::getInstance()
+                    ->prepare('UPDATE products SET category_id = :category_id, updated_at = datetime(\'now\') WHERE id = :id')
+                    ->execute(['category_id' => $primary, 'id' => $id]);
+            } else {
+                Database::getInstance()
+                    ->prepare('UPDATE products SET category_id = NULL, updated_at = datetime(\'now\') WHERE id = :id')
+                    ->execute(['id' => $id]);
+            }
+        }
+
+        return $ok;
     }
 
     public static function updateOrCreateByWordpressId(int $wordpressId, array $data): int
@@ -368,6 +426,61 @@ class ProductRepository
         );
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    /** @param list<int> $ids */
+    public static function findByIdsOrdered(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return [];
+        }
+
+        $placeholders = [];
+        $params = [];
+        foreach ($ids as $i => $id) {
+            $key = 'id' . $i;
+            $placeholders[] = ':' . $key;
+            $params[$key] = $id;
+        }
+
+        $in = implode(', ', $placeholders);
+        $stmt = Database::getInstance()->prepare(
+            "SELECT p.*, c.name as category_name FROM products p
+             LEFT JOIN categories c ON c.id = p.category_id
+             WHERE p.id IN ({$in})"
+        );
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll();
+        $byId = [];
+        foreach ($rows as $row) {
+            $byId[(int) $row['id']] = $row;
+        }
+
+        $ordered = [];
+        foreach ($ids as $id) {
+            if (isset($byId[$id])) {
+                $ordered[] = $byId[$id];
+            }
+        }
+
+        return $ordered;
+    }
+
+    public static function listActiveForPicker(int $limit = 300): array
+    {
+        $limit = max(1, min(1000, $limit));
+        $stmt = Database::getInstance()->prepare(
+            'SELECT p.id, p.name, p.brand, p.image, p.price, p.sku, p.featured
+             FROM products p
+             WHERE p.is_active = 1
+             ORDER BY p.name ASC
+             LIMIT :limit'
+        );
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
         return $stmt->fetchAll();
     }
 

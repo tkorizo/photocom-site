@@ -18,6 +18,33 @@ class ImageDownloader
         return $path;
     }
 
+    public static function homePath(): string
+    {
+        $path = dirname(self::productsPath()) . '/home';
+        if (!is_dir($path)) {
+            mkdir($path, 0755, true);
+        }
+        return $path;
+    }
+
+    public static function brandsPath(): string
+    {
+        $path = dirname(self::productsPath()) . '/brands';
+        if (!is_dir($path)) {
+            mkdir($path, 0755, true);
+        }
+        return $path;
+    }
+
+    public static function articlesPath(): string
+    {
+        $path = dirname(self::productsPath()) . '/articles';
+        if (!is_dir($path)) {
+            mkdir($path, 0755, true);
+        }
+        return $path;
+    }
+
     public static function isRemoteUrl(?string $value): bool
     {
         if ($value === null || $value === '') {

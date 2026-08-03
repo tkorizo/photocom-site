@@ -4,8 +4,9 @@
 }
 
 body.has-sidebar {
-    background: #fafafa;
+    background: var(--catalogue-bg, #f6f6f7);
     color: var(--text-dark);
+    font-family: var(--font-body, 'Roboto', sans-serif);
 }
 
 .site-main {
@@ -13,7 +14,7 @@ body.has-sidebar {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    transition: margin-left 0.28s ease;
+    transition: margin-left 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body.sidebar-collapsed .site-main {
@@ -73,7 +74,7 @@ body.sidebar-collapsed .sidebar-drawer-toggle .icon-closed {
     position: fixed;
     inset: 0 auto 0 0;
     width: var(--sidebar-width);
-    background: linear-gradient(180deg, #2a2a2a 0%, #222222 100%);
+    background: linear-gradient(180deg, #121214 0%, #0c0c0e 100%);
     color: #ffffff;
     z-index: 510;
     border-right: 1px solid var(--header-border);

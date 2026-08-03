@@ -1,0 +1,8 @@
+{
+  "name": "photocom",
+  "private": true,
+  "scripts": {
+    "dev": "php -S localhost:8000 router.php",
+    "start": "php -S localhost:8000 router.php"
+  }
+}

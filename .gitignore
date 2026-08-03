@@ -5,3 +5,7 @@ uploads/products/*
 !uploads/products/.gitkeep
 uploads/categories/*
 !uploads/categories/.gitkeep
+uploads/articles/*
+!uploads/articles/.gitkeep
+storage/logs/*
+!storage/logs/.gitkeep

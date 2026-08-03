@@ -13,6 +13,15 @@ spl_autoload_register(function (string $class): void {
 
 date_default_timezone_set('Africa/Casablanca');
 
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
+ini_set('session.cookie_httponly', '1');
+ini_set('session.cookie_samesite', 'Strict');
+
+if (class_exists('SecurityHeaders')) {
+    SecurityHeaders::apply();
+}
+
 if (class_exists('Database')) {
     Database::migrate();
 }

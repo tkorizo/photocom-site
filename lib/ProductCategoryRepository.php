@@ -56,4 +56,38 @@ class ProductCategoryRepository
         $names = self::getCategoryNames($productId);
         return $names ? implode(', ', $names) : '—';
     }
+
+    /**
+     * @param list<int> $productIds
+     * @return array<int, list<int>>
+     */
+    public static function mapCategoryIdsForProducts(array $productIds): array
+    {
+        $productIds = array_values(array_filter(array_map('intval', $productIds)));
+        if ($productIds === []) {
+            return [];
+        }
+
+        $placeholders = [];
+        $params = [];
+        foreach ($productIds as $i => $id) {
+            $key = 'p' . $i;
+            $placeholders[] = ':' . $key;
+            $params[$key] = $id;
+        }
+
+        $stmt = Database::getInstance()->prepare(
+            'SELECT product_id, category_id FROM product_categories
+             WHERE product_id IN (' . implode(',', $placeholders) . ')
+             ORDER BY product_id ASC, category_id ASC'
+        );
+        $stmt->execute($params);
+
+        $map = array_fill_keys($productIds, []);
+        foreach ($stmt->fetchAll() as $row) {
+            $map[(int) $row['product_id']][] = (int) $row['category_id'];
+        }
+
+        return $map;
+    }
 }

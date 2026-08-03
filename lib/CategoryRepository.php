@@ -46,7 +46,127 @@ class CategoryRepository
 
     public static function menuTree(): array
     {
-        return self::buildTree(self::all());
+        $tree = self::buildTree(self::all());
+
+        return array_values(array_filter(
+            $tree,
+            static fn (array $category): bool => (int) ($category['show_in_menu'] ?? 1) === 1
+        ));
+    }
+
+    /** @return list<array{id: string, label: string, category_id: int, visible: int}> */
+    public static function defaultMenuItemsFromRoots(): array
+    {
+        $items = [];
+        foreach (self::rootCategories() as $cat) {
+            $items[] = [
+                'id' => 'cat-' . (int) $cat['id'],
+                'label' => (string) $cat['name'],
+                'category_id' => (int) $cat['id'],
+                'visible' => (int) ($cat['show_in_menu'] ?? 1) === 1 ? 1 : 0,
+            ];
+        }
+
+        return $items;
+    }
+
+    /**
+     * Construit le mega menu à partir d’entrées configurables (label + catégorie liée).
+     *
+     * @param list<array{id?: string, label?: string, category_id?: int, visible?: int}> $items
+     * @return list<array<string, mixed>>
+     */
+    public static function menuFromConfig(array $items): array
+    {
+        $all = self::all();
+        $tree = self::buildTree($all);
+        $byId = [];
+        self::indexTreeNodes($tree, $byId);
+
+        $menu = [];
+        foreach ($items as $item) {
+            if ((int) ($item['visible'] ?? 1) !== 1) {
+                continue;
+            }
+            $categoryId = (int) ($item['category_id'] ?? 0);
+            if ($categoryId <= 0 || !isset($byId[$categoryId])) {
+                continue;
+            }
+            $node = $byId[$categoryId];
+            $label = trim((string) ($item['label'] ?? ''));
+            if ($label !== '') {
+                $node['name'] = $label;
+            }
+            $menu[] = $node;
+        }
+
+        return $menu;
+    }
+
+    /** @param array<int, array<string, mixed>> $map */
+    private static function indexTreeNodes(array $nodes, array &$map): void
+    {
+        foreach ($nodes as $node) {
+            $map[(int) $node['id']] = $node;
+            if (!empty($node['children']) && is_array($node['children'])) {
+                self::indexTreeNodes($node['children'], $map);
+            }
+        }
+    }
+
+    /** @return list<array<string, mixed>> */
+    public static function rootCategories(): array
+    {
+        $stmt = Database::getInstance()->query(
+            'SELECT id, name, slug, menu_order, COALESCE(show_in_menu, 1) as show_in_menu, thumbnail
+             FROM categories
+             WHERE parent_id IS NULL
+             ORDER BY menu_order ASC, name ASC'
+        );
+
+        return $stmt->fetchAll();
+    }
+
+    /** @param list<int> $orderedIds */
+    public static function updateMenuOrder(array $orderedIds): void
+    {
+        $db = Database::getInstance();
+        $stmt = $db->prepare('UPDATE categories SET menu_order = :menu_order WHERE id = :id AND parent_id IS NULL');
+        foreach (array_values($orderedIds) as $index => $id) {
+            $id = (int) $id;
+            if ($id <= 0) {
+                continue;
+            }
+            $stmt->execute([
+                'menu_order' => $index + 1,
+                'id' => $id,
+            ]);
+        }
+    }
+
+    /** @param array<int, int> $visibilityMap id => 0|1 */
+    public static function updateMenuVisibility(array $visibilityMap): void
+    {
+        $db = Database::getInstance();
+        $stmt = $db->prepare('UPDATE categories SET show_in_menu = :show_in_menu WHERE id = :id AND parent_id IS NULL');
+        foreach ($visibilityMap as $id => $visible) {
+            $stmt->execute([
+                'show_in_menu' => ((int) $visible) === 1 ? 1 : 0,
+                'id' => (int) $id,
+            ]);
+        }
+    }
+
+    public static function renameRoot(int $id, string $name): void
+    {
+        $name = trim($name);
+        if ($name === '' || $id <= 0) {
+            return;
+        }
+        $stmt = Database::getInstance()->prepare(
+            'UPDATE categories SET name = :name WHERE id = :id AND parent_id IS NULL'
+        );
+        $stmt->execute(['name' => $name, 'id' => $id]);
     }
 
     public static function findBySlug(string $slug): ?array
@@ -151,6 +271,52 @@ class CategoryRepository
         $stmt->execute(['wordpress_id' => $wordpressId]);
         $row = $stmt->fetch();
         return $row ?: null;
+    }
+
+    public static function quickUpdate(int $id, array $data): bool
+    {
+        $category = self::find($id);
+        if (!$category) {
+            return false;
+        }
+
+        $sets = [];
+        $params = ['id' => $id];
+
+        if (array_key_exists('parent_id', $data)) {
+            $parentId = $data['parent_id'];
+            if ($parentId === null || $parentId === '' || (int) $parentId === 0) {
+                $sets[] = 'parent_id = NULL';
+            } else {
+                $parentId = (int) $parentId;
+                if ($parentId === $id) {
+                    throw new RuntimeException('Une catégorie ne peut pas être son propre parent.');
+                }
+                // Empêcher de mettre un descendant comme parent
+                $descendants = self::descendantIds($id);
+                if (in_array($parentId, $descendants, true)) {
+                    throw new RuntimeException('Impossible de choisir une sous-catégorie comme parent.');
+                }
+                $sets[] = 'parent_id = :parent_id';
+                $params['parent_id'] = $parentId;
+            }
+        }
+
+        if (array_key_exists('name', $data)) {
+            $name = trim((string) $data['name']);
+            if ($name === '') {
+                throw new RuntimeException('Le nom est obligatoire.');
+            }
+            $sets[] = 'name = :name';
+            $params['name'] = $name;
+        }
+
+        if ($sets === []) {
+            return true;
+        }
+
+        $sql = 'UPDATE categories SET ' . implode(', ', $sets) . ' WHERE id = :id';
+        return Database::getInstance()->prepare($sql)->execute($params);
     }
 
     public static function create(array $data): int

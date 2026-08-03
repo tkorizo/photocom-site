@@ -87,4 +87,19 @@ class Helpers
             $counter++;
         }
     }
+
+    public static function slugExists(string $table, string $slug, ?int $excludeId = null): bool
+    {
+        $slug = self::slugify($slug);
+        $sql = "SELECT id FROM {$table} WHERE slug = :slug";
+        $params = ['slug' => $slug];
+        if ($excludeId !== null) {
+            $sql .= ' AND id != :id';
+            $params['id'] = $excludeId;
+        }
+        $stmt = Database::getInstance()->prepare($sql);
+        $stmt->execute($params);
+
+        return (bool) $stmt->fetch();
+    }
 }

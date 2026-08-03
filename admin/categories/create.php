@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/bootstrap.php';
-Auth::requireLogin();
+Auth::requireCatalog();
 
 $pageTitle = 'Nouvelle catégorie';
 $currentPage = 'categories';
@@ -19,7 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'Le nom est obligatoire.';
             }
             if (empty($errors)) {
-                CategoryRepository::create($data);
+                $newId = CategoryRepository::create($data);
+                AuditLog::record('category.create', 'category', $newId, ['name' => $data['name'] ?? '']);
                 Helpers::flash('success', 'Catégorie créée.');
                 Helpers::redirect('/admin/categories/index.php');
             }

@@ -12,13 +12,28 @@ if (!$user) {
     Helpers::redirect('/admin/users/index.php');
 }
 
+if (!UserRepository::canActorManage($user)) {
+    Helpers::flash('error', 'Vous ne pouvez pas modifier ce compte.');
+    Helpers::redirect('/admin/users/index.php');
+}
+
+// Masquer totalement le super admin aux autres comptes (même via URL directe).
+if (
+    UserRepository::normalizeRole((string) $user['role']) === Auth::ROLE_SUPER_ADMIN
+    && !Auth::isSuperAdmin()
+) {
+    Helpers::flash('error', 'Compte introuvable.');
+    Helpers::redirect('/admin/users/index.php');
+}
+
 $pageTitle = 'Modifier utilisateur';
 $currentPage = 'users';
 $errors = [];
+$isSuperTarget = UserRepository::normalizeRole((string) $user['role']) === Auth::ROLE_SUPER_ADMIN;
 $data = [
     'name' => $user['name'],
     'email' => $user['email'],
-    'role' => $user['role'],
+    'role' => UserRepository::normalizeRole((string) $user['role']),
 ];
 $isEdit = true;
 
@@ -29,7 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = [
             'name' => trim($_POST['name'] ?? ''),
             'email' => trim($_POST['email'] ?? ''),
-            'role' => $_POST['role'] ?? 'editor',
+            'role' => $isSuperTarget
+                ? Auth::ROLE_SUPER_ADMIN
+                : UserRepository::normalizeRole((string) ($_POST['role'] ?? Auth::ROLE_CATALOG)),
         ];
         $password = $_POST['password'] ?? '';
 
@@ -39,13 +56,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($data['email'] === '') {
             $errors[] = 'L\'email est obligatoire.';
         }
-        if ($user['role'] === 'admin' && $data['role'] !== 'admin' && UserRepository::countAdmins() <= 1) {
-            $errors[] = 'Impossible de retirer le rôle du dernier administrateur.';
+        if (!$isSuperTarget && !isset(UserRepository::assignableRoles()[$data['role']])) {
+            $errors[] = 'Rôle non autorisé.';
         }
 
         if (empty($errors)) {
             try {
                 UserRepository::update($id, $data['name'], $data['email'], $data['role'], $password ?: null);
+                AuditLog::record('user.update', 'user', $id, [
+                    'email' => $data['email'],
+                    'role' => $data['role'],
+                    'password_changed' => $password !== '',
+                ]);
                 if ($id === (int) Auth::user()['id']) {
                     Auth::startSession();
                     $_SESSION['photocom_admin']['name'] = $data['name'];

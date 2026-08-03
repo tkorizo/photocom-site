@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/bootstrap.php';
-Auth::requireLogin();
+Auth::requireCatalog();
 
 $id = (int) ($_GET['id'] ?? 0);
 $category = CategoryRepository::find($id);
@@ -26,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if (empty($errors)) {
                 CategoryRepository::update($id, $data);
+                AuditLog::record('category.update', 'category', $id, ['name' => $data['name'] ?? '']);
                 Helpers::flash('success', 'Catégorie mise à jour.');
                 Helpers::redirect('/admin/categories/index.php');
             }

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/bootstrap.php';
-Auth::requireLogin();
+Auth::requireCatalog();
 
 $id = (int) ($_GET['id'] ?? 0);
 $product = ProductRepository::find($id);
@@ -24,8 +24,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($data['name'] === '') {
                 $errors[] = 'Le nom est obligatoire.';
             }
+            $slug = trim((string) ($data['slug'] ?? '')) !== ''
+                ? Helpers::slugify((string) $data['slug'])
+                : Helpers::slugify($data['name']);
+            $data['slug'] = $slug;
+            if ($slug !== '' && Helpers::slugExists('products', $slug, $id)) {
+                $errors[] = 'Ce slug existe déjà (« ' . $slug . ' »). Modifiez le nom ou le slug.';
+            }
+            if ($data['brand'] !== '' && !BrandRepository::findByName($data['brand'])) {
+                BrandRepository::create($data['brand']);
+            }
             if (empty($errors)) {
                 ProductRepository::update($id, $data);
+                AuditLog::record('product.update', 'product', $id, ['name' => $data['name'] ?? '']);
                 Helpers::flash('success', 'Produit mis à jour.');
                 Helpers::redirect('/admin/produits/index.php');
             }

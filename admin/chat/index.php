@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'chat_welcome_message' => trim($_POST['chat_welcome_message'] ?? ''),
             'chat_offline_message' => trim($_POST['chat_offline_message'] ?? ''),
         ]);
+        AuditLog::record('settings.chat', 'settings', null);
         Helpers::flash('success', 'Paramètres du chat enregistrés.');
         Helpers::redirect('/admin/chat/index.php');
     }

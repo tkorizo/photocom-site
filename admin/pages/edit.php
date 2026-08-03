@@ -30,9 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (empty($errors)) {
             PageRepository::update($id, $data);
+            AuditLog::record('page.update', 'page', $id, ['title' => $data['title'] ?? '']);
             Helpers::flash('success', 'Page enregistrée.');
             Helpers::redirect('/admin/pages/index.php');
         }
+        $page = array_merge($page, $data);
     }
 }
 
@@ -55,9 +57,35 @@ require dirname(__DIR__) . '/includes/header.php';
             <input type="text" name="title" value="<?= Helpers::e($page['title']) ?>" required>
         </label>
 
-        <label>Contenu
-            <textarea name="content" rows="16"><?= Helpers::e($page['content']) ?></textarea>
-        </label>
+        <div class="rich-editor" data-rich-editor>
+            <p class="text-muted" style="margin-bottom:0.5rem">Contenu — utilisez la barre d’outils pour paragraphes, titres, alignement et liens.</p>
+            <div class="rich-toolbar" data-rich-toolbar>
+                <button type="button" class="btn btn-sm" data-cmd="formatBlock" data-value="p" title="Paragraphe">¶</button>
+                <button type="button" class="btn btn-sm" data-cmd="formatBlock" data-value="h2" title="Titre 2">H2</button>
+                <button type="button" class="btn btn-sm" data-cmd="formatBlock" data-value="h3" title="Titre 3">H3</button>
+                <span class="rich-sep"></span>
+                <button type="button" class="btn btn-sm" data-cmd="bold" title="Gras"><strong>B</strong></button>
+                <button type="button" class="btn btn-sm" data-cmd="italic" title="Italique"><em>I</em></button>
+                <button type="button" class="btn btn-sm" data-cmd="underline" title="Souligné"><u>U</u></button>
+                <span class="rich-sep"></span>
+                <button type="button" class="btn btn-sm" data-cmd="justifyLeft" title="Aligner à gauche">⬅</button>
+                <button type="button" class="btn btn-sm" data-cmd="justifyCenter" title="Centrer">⬌</button>
+                <button type="button" class="btn btn-sm" data-cmd="justifyRight" title="Aligner à droite">➡</button>
+                <span class="rich-sep"></span>
+                <button type="button" class="btn btn-sm" data-cmd="insertUnorderedList" title="Liste à puces">• Liste</button>
+                <button type="button" class="btn btn-sm" data-cmd="createLink" title="Lien cliquable">Lien</button>
+                <button type="button" class="btn btn-sm" data-cmd="unlink" title="Retirer le lien">Unlink</button>
+                <button type="button" class="btn btn-sm" data-cmd="removeFormat" title="Effacer le format">Clear</button>
+            </div>
+            <div
+                class="rich-area"
+                data-rich-area
+                contenteditable="true"
+                role="textbox"
+                aria-multiline="true"
+            ><?= $page['content'] ?></div>
+            <textarea name="content" data-rich-input hidden><?= Helpers::e($page['content']) ?></textarea>
+        </div>
 
         <label class="checkbox-label">
             <input type="checkbox" name="is_published" value="1" <?= $page['is_published'] ? 'checked' : '' ?>>
@@ -67,8 +95,11 @@ require dirname(__DIR__) . '/includes/header.php';
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Enregistrer</button>
             <a href="/admin/pages/index.php" class="btn">Retour</a>
+            <a href="/page/<?= Helpers::e($page['slug']) ?>" class="btn" target="_blank" rel="noopener">Voir sur le site</a>
         </div>
     </form>
 </div>
+
+<script src="/assets/js/rich-editor.js"></script>
 
 <?php require dirname(__DIR__) . '/includes/footer.php'; ?>
