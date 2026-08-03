@@ -8,6 +8,8 @@ Auth::requireAdmin();
 $pageTitle = 'Page d\'accueil';
 $currentPage = 'home';
 $builderMode = true;
+require_once dirname(__DIR__, 2) . '/public/includes/trust-icons.php';
+
 $errors = [];
 $home = SettingRepository::home();
 $fields = array_keys(SettingRepository::homeDefaults());
@@ -401,6 +403,7 @@ require dirname(__DIR__) . '/includes/header.php';
                     <div class="he-trust">
                         <?php for ($i = 1; $i <= 4; $i++): ?>
                             <div class="he-trust-item">
+                                <span class="he-trust-icon"><?= trustIcon($i, 22) ?></span>
                                 <strong data-preview="trust_<?= $i ?>_title"><?= Helpers::e($home['trust_' . $i . '_title']) ?></strong>
                                 <p data-preview="trust_<?= $i ?>_text"><?= Helpers::e($home['trust_' . $i . '_text']) ?></p>
                             </div>
@@ -826,8 +829,15 @@ require dirname(__DIR__) . '/includes/header.php';
             <!-- TRUST -->
             <div class="he-panel-section" data-panel="trust">
                 <label class="he-switch"><input type="checkbox" name="trust_enabled" value="1" <?= $isOn('trust_enabled') ? 'checked' : '' ?>> Afficher la section</label>
-                <?php for ($i = 1; $i <= 4; $i++): ?>
-                    <p class="he-field-label">Bloc <?= $i ?></p>
+                <p class="he-note-inline">Icônes automatiques : Livraison, Retours, Commander, Garantie.</p>
+                <?php
+                $trustLabels = [1 => 'Livraison', 2 => 'Retours', 3 => 'Commander', 4 => 'Garantie'];
+                for ($i = 1; $i <= 4; $i++):
+                ?>
+                    <p class="he-field-label">
+                        <span class="he-trust-icon he-trust-icon--sm"><?= trustIcon($i, 16) ?></span>
+                        Bloc <?= $i ?> — <?= Helpers::e($trustLabels[$i]) ?>
+                    </p>
                     <label>Titre<input type="text" name="trust_<?= $i ?>_title" value="<?= Helpers::e($home['trust_' . $i . '_title']) ?>" data-bind="trust_<?= $i ?>_title"></label>
                     <label>Texte<textarea name="trust_<?= $i ?>_text" rows="2" data-bind="trust_<?= $i ?>_text"><?= Helpers::e($home['trust_' . $i . '_text']) ?></textarea></label>
                     <div class="he-row">

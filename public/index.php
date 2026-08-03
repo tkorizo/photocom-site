@@ -8,11 +8,9 @@ require __DIR__ . '/includes/init.php';
 $featuredProducts = [];
 $bestsellers = [];
 $brandList = [];
-$productsCount = 0;
 
 try {
     Database::initialize();
-    $productsCount = ProductRepository::countActive();
 
     $featuredIds = SettingRepository::parseIdList($home['featured_product_ids'] ?? '');
     $featuredLimit = max(1, min(8, (int) ($home['featured_count'] ?? 2)));
@@ -36,7 +34,6 @@ try {
 
     $brandList = BrandRepository::forHome();
 } catch (Throwable) {
-    $productsCount = 0;
     $menuTree = $menuTree ?? [];
     $brandList = [];
 }
@@ -144,31 +141,26 @@ if ($heroMediaType === 'none') {
                     <span class="section-label"><?= Helpers::e($home['featured_label']) ?></span>
                     <h2><?= Helpers::e($home['featured_title']) ?></h2>
                 </header>
-                <div class="featured-grid">
-                    <?php foreach (array_slice($featuredProducts, 0, 2) as $product): ?>
-                        <article class="featured-card">
-                            <a href="/catalogue.php?q=<?= urlencode($product['name']) ?>" class="featured-card-media">
-                                <?php if ($product['image']): ?>
-                                    <img src="<?= Helpers::e($product['image']) ?>" alt="<?= Helpers::e($product['name']) ?>" loading="lazy">
-                                <?php else: ?>
-                                    <span class="product-placeholder">PC</span>
-                                <?php endif; ?>
-                            </a>
-                            <div class="featured-card-body">
-                                <?php if ($product['brand']): ?>
-                                    <span class="product-brand"><?= Helpers::e($product['brand']) ?></span>
-                                <?php endif; ?>
-                                <h3><a href="/catalogue.php?q=<?= urlencode($product['name']) ?>"><?= Helpers::e($product['name']) ?></a></h3>
-                                <?php if ($product['short_description']): ?>
-                                    <p><?= Helpers::e(mb_strimwidth(strip_tags($product['short_description']), 0, 120, '…')) ?></p>
-                                <?php endif; ?>
-                                <div class="featured-card-foot">
-                                    <span class="product-price"><?= Helpers::formatPrice((float) $product['price']) ?></span>
-                                    <a href="https://wa.me/<?= Helpers::e($whatsapp) ?>?text=<?= urlencode('Bonjour, je souhaite des infos sur : ' . $product['name']) ?>" class="btn btn-primary btn-sm" target="_blank" rel="noopener">Commander</a>
-                                </div>
-                            </div>
-                        </article>
-                    <?php endforeach; ?>
+
+                <?php
+                $featuredSlider = array_values($featuredProducts);
+                // Doubler pour une boucle fluide si assez d’items
+                $featuredLoop = count($featuredSlider) > 3
+                    ? array_merge($featuredSlider, $featuredSlider)
+                    : $featuredSlider;
+                ?>
+                <div class="featured-slider" data-featured-slider<?= count($featuredSlider) > 3 ? ' data-animate="1"' : '' ?>>
+                    <div class="featured-slider-viewport">
+                        <div class="featured-slider-track">
+                            <?php foreach ($featuredLoop as $product): ?>
+                                <?php
+                                $extraClass = 'featured-slide-card';
+                                $titleTag = 'h3';
+                                require __DIR__ . '/includes/product-card.php';
+                                ?>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -236,42 +228,29 @@ if ($heroMediaType === 'none') {
                     <span class="section-label"><?= Helpers::e($home['bestsellers_label']) ?></span>
                     <h2><?= Helpers::e($home['bestsellers_title']) ?></h2>
                 </header>
-                <div class="products-grid products-grid-compact">
+                    <div class="products-grid products-grid-compact">
                     <?php foreach ($bestsellers as $product): ?>
-                        <article class="product-card product-card-minimal">
-                            <a href="/catalogue.php?q=<?= urlencode($product['name']) ?>" class="product-card-image">
-                                <?php if ($product['image']): ?>
-                                    <img src="<?= Helpers::e($product['image']) ?>" alt="<?= Helpers::e($product['name']) ?>" loading="lazy">
-                                <?php else: ?>
-                                    <span class="product-placeholder">PC</span>
-                                <?php endif; ?>
-                                <?php if ($product['on_sale']): ?>
-                                    <span class="product-badge-sale">Promo</span>
-                                <?php endif; ?>
-                            </a>
-                            <div class="product-card-body">
-                                <?php if ($product['brand']): ?>
-                                    <span class="product-brand"><?= Helpers::e($product['brand']) ?></span>
-                                <?php endif; ?>
-                                <h3><a href="/catalogue.php?q=<?= urlencode($product['name']) ?>"><?= Helpers::e($product['name']) ?></a></h3>
-                                <p class="product-price"><?= Helpers::formatPrice((float) $product['price']) ?></p>
-                            </div>
-                        </article>
+                        <?php
+                        $extraClass = 'product-card-minimal';
+                        $titleTag = 'h3';
+                        require __DIR__ . '/includes/product-card.php';
+                        ?>
                     <?php endforeach; ?>
                 </div>
                 <p class="section-cta">
-                    <a href="/catalogue.php" class="btn btn-outline"><?= Helpers::e($home['catalogue_cta_label']) ?><?= $productsCount ? ' (' . $productsCount . ' produits)' : '' ?></a>
+                    <a href="/catalogue.php" class="btn btn-outline"><?= Helpers::e($home['catalogue_cta_label']) ?></a>
                 </p>
             </div>
         </section>
         <?php endif; ?>
 
         <?php if ($isOn('trust_enabled')): ?>
+        <?php require_once __DIR__ . '/includes/trust-icons.php'; ?>
         <section class="trust-band">
             <div class="container trust-grid">
                 <?php foreach ($trustItems as $index => $item): ?>
                     <article class="trust-item">
-                        <span class="trust-icon"><?= str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT) ?></span>
+                        <span class="trust-icon" aria-hidden="true"><?= trustIcon($index + 1, 28) ?></span>
                         <h3><?= Helpers::e($item['title']) ?></h3>
                         <p><?= Helpers::e($item['text']) ?></p>
                         <?php if ($item['link_label'] !== '' && $item['link_url'] !== ''): ?>
@@ -305,6 +284,7 @@ if ($heroMediaType === 'none') {
     <?php require __DIR__ . '/includes/site-chat.php'; ?>
     <?php require __DIR__ . '/includes/site-cookies.php'; ?>
     <script src="/assets/js/mega-menu.js"></script>
+    <script src="/assets/js/featured-slider.js"></script>
     <script src="/assets/js/chat.js"></script>
 </body>
 </html>

@@ -38,6 +38,7 @@ class SitemapBuilder
         $add('/', date('Y-m-d'), 'daily', '1.0');
         $add('/catalogue.php', date('Y-m-d'), 'daily', '0.9');
         $add('/a-propos', null, 'monthly', '0.6');
+        $add('/contact', null, 'monthly', '0.7');
         $add('/conseils', date('Y-m-d'), 'weekly', '0.8');
 
         try {
@@ -62,6 +63,27 @@ class SitemapBuilder
                     '0.7'
                 );
             }
+        } catch (Throwable) {
+        }
+
+        try {
+            $page = 1;
+            do {
+                $result = ProductRepository::paginatePublic($page, 200);
+                foreach ($result['data'] as $product) {
+                    if (empty($product['slug'])) {
+                        continue;
+                    }
+                    $add(
+                        '/produit/' . rawurlencode((string) $product['slug']),
+                        (string) ($product['updated_at'] ?? $product['created_at'] ?? ''),
+                        'weekly',
+                        '0.8'
+                    );
+                }
+                $totalPages = (int) ($result['total_pages'] ?? 1);
+                $page++;
+            } while ($page <= $totalPages);
         } catch (Throwable) {
         }
 

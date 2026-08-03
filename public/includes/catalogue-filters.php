@@ -45,14 +45,14 @@ $sortOptions = [
                     <div class="filter-options">
                         <label class="filter-option">
                             <input type="radio" name="brand" value="" <?= $brandFilter === '' ? 'checked' : '' ?>>
-                            <span class="filter-option-text">Toutes les marques</span>
                             <span class="filter-option-mark" aria-hidden="true"></span>
+                            <span class="filter-option-text">Toutes les marques</span>
                         </label>
                         <?php foreach ($filterMeta['brands'] as $brand): ?>
                             <label class="filter-option">
                                 <input type="radio" name="brand" value="<?= Helpers::e($brand) ?>" <?= $brandFilter === $brand ? 'checked' : '' ?>>
-                                <span class="filter-option-text"><?= Helpers::e($brand) ?></span>
                                 <span class="filter-option-mark" aria-hidden="true"></span>
+                                <span class="filter-option-text"><?= Helpers::e($brand) ?></span>
                             </label>
                         <?php endforeach; ?>
                     </div>
@@ -76,8 +76,8 @@ $sortOptions = [
                     <?php foreach ($sortOptions as $value => $label): ?>
                         <label class="filter-option">
                             <input type="radio" name="sort" value="<?= Helpers::e($value) ?>" <?= $sort === $value ? 'checked' : '' ?>>
-                            <span class="filter-option-text"><?= Helpers::e($label) ?></span>
                             <span class="filter-option-mark" aria-hidden="true"></span>
+                            <span class="filter-option-text"><?= Helpers::e($label) ?></span>
                         </label>
                     <?php endforeach; ?>
                 </div>
@@ -88,20 +88,20 @@ $sortOptions = [
                 <div class="filter-options">
                     <label class="filter-option">
                         <input type="checkbox" name="on_sale" value="1" <?= $onSaleOnly ? 'checked' : '' ?>>
-                        <span class="filter-option-text">En promotion</span>
                         <span class="filter-option-mark" aria-hidden="true"></span>
+                        <span class="filter-option-text">En promotion</span>
                     </label>
                     <label class="filter-option">
                         <input type="checkbox" name="in_stock" value="1" <?= $inStockOnly ? 'checked' : '' ?>>
-                        <span class="filter-option-text">En stock</span>
                         <span class="filter-option-mark" aria-hidden="true"></span>
+                        <span class="filter-option-text">En stock</span>
                     </label>
                 </div>
             </fieldset>
 
             <div class="filter-actions">
                 <button type="submit" class="btn btn-primary btn-filter">Appliquer</button>
-                <a href="/catalogue.php<?= $catSlug ? '?cat=' . urlencode($catSlug) : '' ?>" class="btn btn-outline-filter">Réinitialiser</a>
+                <a href="/catalogue.php<?= $catSlug ? '?cat=' . urlencode($catSlug) : '' ?>" class="btn-outline-filter">Réinitialiser</a>
             </div>
         </form>
     </div>

@@ -201,7 +201,7 @@ class SettingRepository
             'trust_4_title' => 'Garantie',
             'trust_4_text' => 'Matériel 100 % authentique avec service après-vente et support technique.',
             'trust_4_link_label' => 'Nous contacter',
-            'trust_4_link_url' => '/#contact',
+            'trust_4_link_url' => '/contact',
 
             // Newsletter
             'newsletter_enabled' => '1',
@@ -335,5 +335,199 @@ class SettingRepository
         }
 
         return CategoryRepository::defaultMenuItemsFromRoots();
+    }
+
+    /** @return array<string, string> */
+    public static function about(): array
+    {
+        return self::mergeSettings(self::aboutDefaults());
+    }
+
+    /** @return array<string, string> */
+    public static function contactPage(): array
+    {
+        return self::mergeSettings(self::contactDefaults());
+    }
+
+    /** @return array<string, string> */
+    public static function conseilsPage(): array
+    {
+        return self::mergeSettings(self::conseilsPageDefaults());
+    }
+
+    /** @return list<string> */
+    public static function aboutToggleKeys(): array
+    {
+        return [
+            'about_story_enabled',
+            'about_pillars_enabled',
+            'about_audience_enabled',
+            'about_cta_enabled',
+            'about_find_enabled',
+            'about_links_enabled',
+        ];
+    }
+
+    /** @return list<string> */
+    public static function contactToggleKeys(): array
+    {
+        return [
+            'contact_intro_enabled',
+            'contact_info_enabled',
+            'contact_whatsapp_enabled',
+            'contact_map_enabled',
+            'contact_hours_enabled',
+        ];
+    }
+
+    /** @return list<string> */
+    public static function conseilsPageToggleKeys(): array
+    {
+        return [
+            'conseils_page_cta_enabled',
+        ];
+    }
+
+    /** @return array<string, string> */
+    public static function aboutDefaults(): array
+    {
+        return [
+            'about_seo_title' => 'Qui sommes-nous',
+            'about_seo_description' => 'PHOTOCOM, spécialiste du matériel photo et vidéo professionnel à Casablanca. Distribution officielle, conseil expert et service après-vente.',
+            'about_hero_label' => 'Notre maison',
+            'about_hero_title' => 'PHOTOCOM, partenaire photo & vidéo au Maroc',
+            'about_hero_lead' => 'Depuis Casablanca, nous accompagnons photographes, créateurs et entreprises avec du matériel authentique, un conseil technique précis et un service de proximité.',
+            'about_story_enabled' => '1',
+            'about_story_label' => 'Notre histoire',
+            'about_story_title' => 'Une expertise construite sur le terrain',
+            'about_story_p1' => 'PHOTOCOM est née d’une conviction simple : le matériel professionnel mérite un interlocuteur qui comprend les enjeux du plateau, du studio et de la production.',
+            'about_story_p2' => 'Nous sélectionnons des marques reconnues, testons les produits, et guidons chaque client — du premier appareil au setup studio complet — vers la solution la plus juste pour son usage.',
+            'about_story_p3' => 'Notre équipe, basée à Casablanca, reste disponible pour le conseil avant-vente, la démonstration et le suivi après livraison.',
+            'about_fact_1_value' => 'Casablanca',
+            'about_fact_1_label' => 'Showroom & retrait magasin',
+            'about_fact_2_value' => '100 %',
+            'about_fact_2_label' => 'Matériel authentique',
+            'about_fact_3_value' => 'National',
+            'about_fact_3_label' => 'Livraison partout au Maroc',
+            'about_fact_4_value' => 'WhatsApp',
+            'about_fact_4_label' => 'Devis sous 24 h',
+            'about_pillars_enabled' => '1',
+            'about_pillars_label' => 'Ce qui nous définit',
+            'about_pillars_title' => 'Quatre engagements concrets',
+            'about_pillar_1_title' => 'Sélection exigeante',
+            'about_pillar_1_text' => 'Nous ne listons que des références fiables : boîtiers, objectifs, éclairage, studio et accessoires issus de circuits officiels.',
+            'about_pillar_2_title' => 'Conseil technique',
+            'about_pillar_2_text' => 'Besoin d’un hybride, d’un flash studio ou d’un kit vidéo ? Nous vous aidons à choisir selon votre niveau, votre budget et vos projets.',
+            'about_pillar_3_title' => 'Disponibilité locale',
+            'about_pillar_3_text' => 'Retrait en magasin, questions techniques, SAV : une relation directe, sans barrière entre vous et l’équipe PHOTOCOM.',
+            'about_pillar_4_title' => 'Accompagnement',
+            'about_pillar_4_text' => 'Devis WhatsApp, suivi de commande, conseils d’usage : nous restons présents avant et après l’achat.',
+            'about_audience_enabled' => '1',
+            'about_audience_label' => 'Pour qui',
+            'about_audience_title' => 'Nous travaillons avec',
+            'about_audience_1_title' => 'Photographes & vidéastes',
+            'about_audience_1_text' => 'Matériel de prise de vue, optique et lumière pour la production quotidienne.',
+            'about_audience_2_title' => 'Studios & agences',
+            'about_audience_2_text' => 'Éclairage, fonds, grip et solutions durables pour les plateaux.',
+            'about_audience_3_title' => 'Entreprises & écoles',
+            'about_audience_3_text' => 'Équipements pour la communication, la formation et les projets audiovisuels.',
+            'about_audience_4_title' => 'Passionnés exigeants',
+            'about_audience_4_text' => 'Conseils clairs pour monter en gamme sans se tromper d’investissement.',
+            'about_cta_enabled' => '1',
+            'about_cta_label' => 'Parlons de votre projet',
+            'about_cta_title' => 'Besoin d’un devis ou d’un conseil ?',
+            'about_cta_text' => 'Expliquez-nous votre usage : nous vous orientons vers le bon matériel et un devis personnalisé.',
+            'about_cta_1_label' => 'Voir le catalogue',
+            'about_cta_1_url' => '/catalogue.php',
+            'about_cta_2_label' => 'WhatsApp',
+            'about_cta_2_url' => 'whatsapp',
+            'about_cta_3_label' => 'Contact',
+            'about_cta_3_url' => '/contact',
+            'about_find_enabled' => '1',
+            'about_find_label' => 'Nous trouver',
+            'about_find_title' => 'PHOTOCOM à Casablanca',
+            'about_links_enabled' => '1',
+            'about_links_label' => 'Ressources',
+            'about_links_title' => 'Aller plus loin',
+            'about_link_1_label' => 'Conseils & articles',
+            'about_link_1_url' => '/conseils',
+            'about_link_2_label' => 'Comment commander',
+            'about_link_2_url' => '/page/comment-commander',
+            'about_link_3_label' => 'Livraison',
+            'about_link_3_url' => '/page/politique-livraison',
+            'about_link_4_label' => 'Retours',
+            'about_link_4_url' => '/page/politique-retour',
+            'about_link_5_label' => 'Mentions légales',
+            'about_link_5_url' => '/page/mentions-legales',
+        ];
+    }
+
+    /** @return array<string, string> */
+    public static function contactDefaults(): array
+    {
+        return [
+            'contact_seo_title' => 'Contact',
+            'contact_seo_description' => 'Contactez PHOTOCOM à Casablanca : téléphone, WhatsApp, email et horaires. Devis matériel photo & vidéo sous 24 h.',
+            'contact_hero_label' => 'Contact',
+            'contact_hero_title' => 'Parlons de votre projet',
+            'contact_hero_lead' => 'Une question technique, un devis ou un retrait en magasin : notre équipe vous répond rapidement.',
+            'contact_intro_enabled' => '1',
+            'contact_intro_label' => 'Écrire ou appeler',
+            'contact_intro_title' => 'Nous sommes à votre écoute',
+            'contact_intro_text' => 'Décrivez votre besoin (boîtier, optique, éclairage, studio…) : nous vous orientons vers les bonnes références et un devis personnalisé.',
+            'contact_info_enabled' => '1',
+            'contact_info_label' => 'Coordonnées',
+            'contact_info_title' => 'PHOTOCOM Casablanca',
+            'contact_whatsapp_enabled' => '1',
+            'contact_whatsapp_title' => 'Réponse rapide sur WhatsApp',
+            'contact_whatsapp_text' => 'Le moyen le plus simple pour obtenir un devis, vérifier un stock ou préparer un retrait magasin.',
+            'contact_whatsapp_label' => 'Ouvrir WhatsApp',
+            'contact_whatsapp_prefiller' => 'Bonjour PHOTOCOM, je souhaite des informations sur :',
+            'contact_form_title' => 'Préparer votre message',
+            'contact_form_placeholder' => 'Votre message…',
+            'contact_form_button' => 'Envoyer via WhatsApp',
+            'contact_hours_enabled' => '1',
+            'contact_hours_note' => 'Horaires susceptibles d’évoluer les jours fériés. N’hésitez pas à nous écrire hors horaires : nous vous répondrons dès ouverture.',
+            'contact_map_enabled' => '0',
+            'contact_map_embed' => '',
+            'contact_map_title' => 'Nous situer',
+            'contact_cta_catalogue_label' => 'Voir le catalogue',
+            'contact_cta_catalogue_url' => '/catalogue.php',
+        ];
+    }
+
+    /** @return array<string, string> */
+    public static function conseilsPageDefaults(): array
+    {
+        return [
+            'conseils_page_seo_title' => 'Conseils',
+            'conseils_page_seo_description' => 'Conseils photo et vidéo par PHOTOCOM : éclairage, objectifs, studio et bonnes pratiques pour réussir vos projets.',
+            'conseils_page_hero_label' => 'Blog',
+            'conseils_page_hero_title' => 'Conseils photo & vidéo',
+            'conseils_page_hero_lead' => 'Guides pratiques et retours d’expérience pour choisir, utiliser et faire évoluer votre matériel.',
+            'conseils_page_empty_text' => 'Aucun article pour le moment. Revenez bientôt.',
+            'conseils_page_cta_enabled' => '1',
+            'conseils_page_cta_label' => 'Besoin d’un conseil personnalisé ?',
+            'conseils_page_cta_title' => 'Parlez-nous de votre projet',
+            'conseils_page_cta_text' => 'Nos équipes vous aident à choisir le matériel adapté à votre usage, votre niveau et votre budget.',
+            'conseils_page_cta_btn_label' => 'Nous contacter',
+            'conseils_page_cta_btn_url' => '/contact',
+            'conseils_page_cta_secondary_label' => 'Voir le catalogue',
+            'conseils_page_cta_secondary_url' => '/catalogue.php',
+        ];
+    }
+
+    /**
+     * @param array<string, string> $defaults
+     * @return array<string, string>
+     */
+    private static function mergeSettings(array $defaults): array
+    {
+        $data = [];
+        foreach ($defaults as $key => $fallback) {
+            $data[$key] = self::get($key, $fallback) ?? $fallback;
+        }
+
+        return $data;
     }
 }

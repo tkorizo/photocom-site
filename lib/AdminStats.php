@@ -16,7 +16,14 @@ class AdminStats
                 'SELECT COUNT(*) FROM products WHERE is_out_of_stock = 1 OR stock_status = \'outofstock\''
             )->fetchColumn(),
             'coming_soon' => (int) $db->query('SELECT COUNT(*) FROM products WHERE is_coming_soon = 1')->fetchColumn(),
-            'on_sale' => (int) $db->query('SELECT COUNT(*) FROM products WHERE on_sale = 1')->fetchColumn(),
+            'on_sale' => (int) $db->query(
+                'SELECT COUNT(*) FROM products
+                 WHERE on_sale = 1
+                   AND sale_price IS NOT NULL
+                   AND price IS NOT NULL
+                   AND sale_price > 0
+                   AND sale_price < price'
+            )->fetchColumn(),
             'featured' => (int) $db->query('SELECT COUNT(*) FROM products WHERE featured = 1')->fetchColumn(),
             'in_stock' => (int) $db->query(
                 'SELECT COUNT(*) FROM products WHERE is_out_of_stock = 0 AND stock_status = \'instock\' AND is_active = 1'

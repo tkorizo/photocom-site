@@ -15,9 +15,9 @@ $allColumns = [
     'brand' => ['label' => 'Marque', 'editable' => true],
     'categories' => ['label' => 'Catégories', 'editable' => true],
     'price' => ['label' => 'Prix TTC', 'editable' => true],
-    'regular_price' => ['label' => 'Prix régulier', 'editable' => true],
-    'sale_price' => ['label' => 'Prix promo', 'editable' => true],
-    'on_sale' => ['label' => 'Promo', 'editable' => true],
+    'regular_price' => ['label' => 'Avant promo (archiv.)', 'editable' => true],
+    'sale_price' => ['label' => 'Prix promo TTC', 'editable' => true],
+    'on_sale' => ['label' => 'Promo', 'editable' => false],
     'stock' => ['label' => 'Stock', 'editable' => true],
     'stock_status' => ['label' => 'Statut stock', 'editable' => true],
     'is_out_of_stock' => ['label' => 'Rupture', 'editable' => true],
@@ -32,8 +32,8 @@ $allColumns = [
 ];
 
 $defaultColumns = [
-    'image', 'name', 'admin_label', 'categories', 'price', 'sale_price', 'on_sale',
-    'stock', 'is_out_of_stock', 'is_coming_soon', 'featured', 'is_active', 'actions',
+    'image', 'name', 'admin_label', 'categories', 'price', 'regular_price', 'sale_price', 'on_sale',
+    'stock', 'is_out_of_stock', 'featured', 'is_active', 'actions',
 ];
 
 $page = max(1, (int) ($_GET['page'] ?? 1));
@@ -343,13 +343,16 @@ require dirname(__DIR__) . '/includes/kpi.php';
                                         </form>
                                     </td>
                                 <?php elseif (in_array($col, ['price', 'regular_price', 'sale_price'], true)): ?>
-                                    <td>
-                                        <form method="post" action="/admin/produits/quick-update.php" class="inline-field-form" data-defer-save>
+                                    <td class="cell-price cell-price-<?= Helpers::e($col) ?>" data-product-id="<?= $pid ?>">
+                                        <form method="post" action="/admin/produits/quick-update.php" class="inline-field-form" data-defer-save data-price-field="<?= Helpers::e($col) ?>" data-product-id="<?= $pid ?>">
                                             <?= Auth::csrfField() ?>
                                             <input type="hidden" name="id" value="<?= $pid ?>">
                                             <input type="hidden" name="redirect" value="/admin/produits/index.php?<?= $redirectQs ?>">
-                                            <input type="number" step="0.01" name="<?= Helpers::e($col) ?>" value="<?= Helpers::e((string) ($product[$col] ?? '')) ?>" class="input-sm input-price">
+                                            <input type="number" step="0.01" min="0" name="<?= Helpers::e($col) ?>" value="<?= Helpers::e((string) ($product[$col] ?? '')) ?>" class="input-sm input-price" data-price-role="<?= Helpers::e($col) ?>">
                                         </form>
+                                        <?php if ($col === 'sale_price'): ?>
+                                            <small class="field-error inline-price-error" data-sale-error-for="<?= $pid ?>" hidden>Le prix promo TTC ne peut pas être supérieur au prix normal TTC.</small>
+                                        <?php endif; ?>
                                     </td>
                                 <?php elseif ($col === 'stock'): ?>
                                     <td>
@@ -389,7 +392,16 @@ require dirname(__DIR__) . '/includes/kpi.php';
                                             </select>
                                         </form>
                                     </td>
-                                <?php elseif (in_array($col, ['on_sale', 'is_out_of_stock', 'is_coming_soon', 'featured', 'is_active', 'hide_add_to_cart'], true)): ?>
+                                <?php elseif ($col === 'on_sale'): ?>
+                                    <td class="cell-status-dot">
+                                        <span
+                                            class="status-dot <?= !empty($product['on_sale']) ? 'is-on' : 'is-off' ?>"
+                                            data-on-sale-display="<?= $pid ?>"
+                                            title="<?= !empty($product['on_sale']) ? 'En promotion' : 'Pas en promotion' ?>"
+                                            aria-label="<?= !empty($product['on_sale']) ? 'En promotion' : 'Pas en promotion' ?>"
+                                        ></span>
+                                    </td>
+                                <?php elseif (in_array($col, ['is_out_of_stock', 'is_coming_soon', 'featured', 'is_active', 'hide_add_to_cart'], true)): ?>
                                     <td>
                                         <form method="post" action="/admin/produits/quick-update.php" class="inline-toggle-form" data-defer-save>
                                             <?= Auth::csrfField() ?>
@@ -471,10 +483,67 @@ require dirname(__DIR__) . '/includes/kpi.php';
         refreshBar();
     }
 
+    var pricingMsg = 'Le prix promo TTC ne peut pas être supérieur au Prix TTC.';
+
+    function parseNum(v) {
+        if (v === '' || v === null || v === undefined) return null;
+        var n = parseFloat(v);
+        return isNaN(n) ? null : n;
+    }
+
+    function readPriceRole(productId, role) {
+        var input = document.querySelector('form[data-product-id="' + productId + '"][data-price-field="' + role + '"] input[data-price-role="' + role + '"]');
+        return input ? parseNum(input.value) : null;
+    }
+
+    function validateProductPrices(productId) {
+        var sale = readPriceRole(productId, 'sale_price');
+        var price = readPriceRole(productId, 'price');
+        var invalid = sale !== null && price !== null && sale > price + 0.009;
+        var validPromo = sale !== null && sale > 0 && price !== null && sale < price - 0.009;
+        var err = document.querySelector('[data-sale-error-for="' + productId + '"]');
+        var saleInput = document.querySelector('form[data-product-id="' + productId + '"][data-price-field="sale_price"] input');
+        var onSaleDisplay = document.querySelector('[data-on-sale-display="' + productId + '"]');
+        if (err) {
+            err.hidden = !invalid;
+            if (invalid) err.textContent = pricingMsg;
+        }
+        if (saleInput) saleInput.classList.toggle('input-invalid', invalid);
+        if (onSaleDisplay) {
+            onSaleDisplay.classList.toggle('is-on', validPromo && !invalid);
+            onSaleDisplay.classList.toggle('is-off', !(validPromo && !invalid));
+            onSaleDisplay.title = (validPromo && !invalid) ? 'En promotion' : 'Pas en promotion';
+        }
+        return !invalid;
+    }
+
+    function validateAllDirtyPrices() {
+        var ids = new Set();
+        dirty.forEach(function (form) {
+            var id = form.getAttribute('data-product-id');
+            if (id) ids.add(id);
+            var hiddenId = form.querySelector('input[name="id"]');
+            if (hiddenId) ids.add(hiddenId.value);
+        });
+        var ok = true;
+        ids.forEach(function (id) {
+            if (!validateProductPrices(id)) ok = false;
+        });
+        return ok;
+    }
+
     document.querySelectorAll('form[data-defer-save]').forEach(function (form) {
         form.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]), select, textarea').forEach(function (el) {
-            el.addEventListener('input', function () { markDirty(form); });
-            el.addEventListener('change', function () { markDirty(form); });
+            el.addEventListener('input', function () {
+                markDirty(form);
+                var pid = form.getAttribute('data-product-id') || (form.querySelector('input[name="id"]') || {}).value;
+                if (pid && form.getAttribute('data-price-field')) validateProductPrices(pid);
+            });
+            el.addEventListener('change', function () {
+                markDirty(form);
+                var pid = form.getAttribute('data-product-id') || (form.querySelector('input[name="id"]') || {}).value;
+                if (pid && form.getAttribute('data-price-field')) validateProductPrices(pid);
+            });
             if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number')) {
                 el.addEventListener('keydown', function (e) {
                     if (e.key === 'Enter') {
@@ -523,6 +592,11 @@ require dirname(__DIR__) . '/includes/kpi.php';
         var forms = Array.from(dirty);
         if (!forms.length) return;
 
+        if (!validateAllDirtyPrices()) {
+            alert(pricingMsg);
+            return;
+        }
+
         saveBtn.disabled = true;
         discardBtn.disabled = true;
         saveBtn.textContent = 'Enregistrement…';
@@ -547,7 +621,7 @@ require dirname(__DIR__) . '/includes/kpi.php';
             }
             window.location.reload();
         } catch (err) {
-            alert('Impossible d’enregistrer toutes les modifications. Réessayez.');
+            alert((err && err.message) || 'Impossible d’enregistrer toutes les modifications. Réessayez.');
             saveBtn.disabled = false;
             discardBtn.disabled = false;
             saveBtn.textContent = 'Enregistrer les modifications';

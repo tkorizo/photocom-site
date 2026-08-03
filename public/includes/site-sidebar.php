@@ -39,7 +39,7 @@ $activeCatSlug = $activeCatSlug ?? trim($_GET['cat'] ?? '');
             <a href="/catalogue.php" class="sidebar-nav-link">Catalogue</a>
             <a href="/a-propos" class="sidebar-nav-link">Qui sommes-nous</a>
             <a href="/conseils" class="sidebar-nav-link">Conseils</a>
-            <a href="/#contact" class="sidebar-nav-link">Contact</a>
+            <a href="/contact" class="sidebar-nav-link">Contact</a>
         </nav>
 
         <div class="sidebar-section">

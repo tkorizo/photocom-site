@@ -8,10 +8,13 @@ require __DIR__ . '/includes/init.php';
 Database::initialize();
 ArticleRepository::seedDefaults();
 
+$cp = SettingRepository::conseilsPage();
+$isOn = static fn (string $key): bool => ($cp[$key] ?? '0') === '1';
+
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $result = ArticleRepository::paginatePublished($page, 9);
 $articles = $result['data'];
-$pageTitle = 'Conseils';
+$pageTitle = $cp['conseils_page_seo_title'] !== '' ? $cp['conseils_page_seo_title'] : 'Conseils';
 $activeNav = 'conseils';
 ?>
 <!DOCTYPE html>
@@ -21,29 +24,35 @@ $activeNav = 'conseils';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?php
     $seoTitle = $pageTitle;
-    $seoDescription = 'Conseils photo et vidéo par PHOTOCOM : éclairage, objectifs, studio et bonnes pratiques pour réussir vos projets.';
+    $seoDescription = $cp['conseils_page_seo_description'];
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>
     <link rel="stylesheet" href="/assets/css/public.css">
     <link rel="stylesheet" href="/assets/css/chat.css">
 </head>
-<body class="page-blog">
+<body class="page-blog page-editorial">
     <?php require __DIR__ . '/includes/site-header.php'; ?>
 
     <main>
-        <section class="blog-hero">
-            <div class="container blog-hero-inner">
-                <p class="section-label">Blog</p>
-                <h1>Conseils photo &amp; vidéo</h1>
-                <p class="blog-hero-lead">Guides pratiques et retours d’expérience pour choisir, utiliser et faire évoluer votre matériel.</p>
+        <section class="editorial-hero">
+            <div class="container">
+                <div class="editorial-hero-copy">
+                <?php if ($cp['conseils_page_hero_label'] !== ''): ?>
+                    <p class="section-label"><?= Helpers::e($cp['conseils_page_hero_label']) ?></p>
+                <?php endif; ?>
+                <h1><?= Helpers::e($cp['conseils_page_hero_title']) ?></h1>
+                <?php if ($cp['conseils_page_hero_lead'] !== ''): ?>
+                    <p class="editorial-lead"><?= Helpers::e($cp['conseils_page_hero_lead']) ?></p>
+                <?php endif; ?>
+                </div>
             </div>
         </section>
 
-        <section class="home-section section-light">
+        <section class="editorial-section section-light">
             <div class="container">
                 <?php if ($articles === []): ?>
-                    <p class="blog-empty">Aucun article pour le moment. Revenez bientôt.</p>
+                    <p class="blog-empty editorial-empty"><?= Helpers::e($cp['conseils_page_empty_text']) ?></p>
                 <?php else: ?>
                     <div class="blog-grid">
                         <?php foreach ($articles as $index => $article): ?>
@@ -83,6 +92,30 @@ $activeNav = 'conseils';
                 <?php endif; ?>
             </div>
         </section>
+
+        <?php if ($isOn('conseils_page_cta_enabled')): ?>
+        <section class="editorial-section section-dark about-cta-band">
+            <div class="container about-cta-inner">
+                <div>
+                    <?php if ($cp['conseils_page_cta_label'] !== ''): ?>
+                        <p class="section-label section-label-dark"><?= Helpers::e($cp['conseils_page_cta_label']) ?></p>
+                    <?php endif; ?>
+                    <h2><?= Helpers::e($cp['conseils_page_cta_title']) ?></h2>
+                    <?php if ($cp['conseils_page_cta_text'] !== ''): ?>
+                        <p><?= Helpers::e($cp['conseils_page_cta_text']) ?></p>
+                    <?php endif; ?>
+                </div>
+                <div class="about-cta-actions">
+                    <?php if ($cp['conseils_page_cta_btn_label'] !== ''): ?>
+                        <a href="<?= Helpers::e($cp['conseils_page_cta_btn_url'] ?: '/contact') ?>" class="btn btn-primary"><?= Helpers::e($cp['conseils_page_cta_btn_label']) ?></a>
+                    <?php endif; ?>
+                    <?php if ($cp['conseils_page_cta_secondary_label'] !== ''): ?>
+                        <a href="<?= Helpers::e($cp['conseils_page_cta_secondary_url'] ?: '/catalogue.php') ?>" class="btn btn-outline-light"><?= Helpers::e($cp['conseils_page_cta_secondary_label']) ?></a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </section>
+        <?php endif; ?>
     </main>
 
     <?php require __DIR__ . '/includes/site-footer.php'; ?>

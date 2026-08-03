@@ -101,6 +101,17 @@ class Database
         self::addColumnIfMissing('articles', 'focus_keyword', 'TEXT');
         self::addColumnIfMissing('articles', 'canonical_url', 'TEXT');
 
+        // Annule les flags promo sans vraie remise (prix promo >= Prix TTC).
+        $db->exec(
+            'UPDATE products SET on_sale = 0
+             WHERE on_sale = 1 AND (
+                sale_price IS NULL
+                OR price IS NULL
+                OR sale_price <= 0
+                OR sale_price >= price
+             )'
+        );
+
         $db->exec('CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
             value TEXT,

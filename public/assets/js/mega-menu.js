@@ -1,4 +1,7 @@
 (function () {
+    if (window.__PHOTOCOM_MEGA_MENU__) return;
+    window.__PHOTOCOM_MEGA_MENU__ = true;
+
     var nav = document.querySelector('[data-mega-nav]');
     var stage = document.querySelector('[data-mega-stage]');
     var backdrop = document.querySelector('[data-mega-backdrop]');

@@ -46,7 +46,7 @@ class ProductRepository
             'out_of_stock' => $where[] = '(p.is_out_of_stock = 1 OR p.stock_status = \'outofstock\')',
             'coming_soon' => $where[] = 'p.is_coming_soon = 1',
             'in_stock' => $where[] = '(p.is_out_of_stock = 0 AND p.stock_status = \'instock\' AND p.is_active = 1)',
-            'on_sale' => $where[] = 'p.on_sale = 1',
+            'on_sale' => $where[] = 'p.on_sale = 1 AND p.sale_price IS NOT NULL AND p.price IS NOT NULL AND p.sale_price > 0 AND p.sale_price < p.price',
             'featured' => $where[] = 'p.featured = 1',
             default => null,
         };
@@ -118,7 +118,7 @@ class ProductRepository
         }
 
         if ($onSaleOnly) {
-            $where[] = 'p.on_sale = 1';
+            $where[] = 'p.on_sale = 1 AND p.sale_price IS NOT NULL AND p.price IS NOT NULL AND p.sale_price > 0 AND p.sale_price < p.price';
         }
 
         if ($inStockOnly) {
@@ -230,6 +230,58 @@ class ProductRepository
             $row['category_ids'] = ProductCategoryRepository::getCategoryIds($id);
         }
         return $row ?: null;
+    }
+
+    public static function findBySlug(string $slug): ?array
+    {
+        $slug = Helpers::slugify($slug);
+        if ($slug === '') {
+            return null;
+        }
+
+        $stmt = Database::getInstance()->prepare(
+            'SELECT p.*, c.name as category_name, c.slug as category_slug
+             FROM products p
+             LEFT JOIN categories c ON c.id = p.category_id
+             WHERE p.slug = :slug
+             LIMIT 1'
+        );
+        $stmt->execute(['slug' => $slug]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            return null;
+        }
+
+        $row['category_ids'] = ProductCategoryRepository::getCategoryIds((int) $row['id']);
+
+        return $row;
+    }
+
+    /** @return list<array> */
+    public static function related(int $excludeId, ?int $categoryId, int $limit = 4): array
+    {
+        $limit = max(1, min(12, $limit));
+        $params = ['exclude_id' => $excludeId];
+        $where = ['p.is_active = 1', 'p.id != :exclude_id'];
+
+        if ($categoryId !== null && $categoryId > 0) {
+            $where[] = '(p.category_id = :category_id OR EXISTS (
+                SELECT 1 FROM product_categories pc
+                WHERE pc.product_id = p.id AND pc.category_id = :category_id
+            ))';
+            $params['category_id'] = $categoryId;
+        }
+
+        $sql = 'SELECT p.*, c.name as category_name FROM products p
+                LEFT JOIN categories c ON c.id = p.category_id
+                WHERE ' . implode(' AND ', $where) . '
+                ORDER BY p.featured DESC, p.updated_at DESC
+                LIMIT ' . $limit;
+
+        $stmt = Database::getInstance()->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll();
     }
 
     public static function findByWordpressId(int $wordpressId): ?array

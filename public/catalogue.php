@@ -100,7 +100,6 @@ $queryParams = static function () use (
                 <?php if (!empty($category['description'])): ?>
                     <p class="category-hero-desc"><?= Helpers::e($category['description']) ?></p>
                 <?php endif; ?>
-                <p class="category-hero-meta"><?= $result['total'] ?> produit<?= $result['total'] > 1 ? 's' : '' ?></p>
             </div>
         </div>
     </section>
@@ -113,7 +112,6 @@ $queryParams = static function () use (
                 <?php if (!$category): ?>
                 <header class="catalogue-header">
                     <h1><?= Helpers::e($pageTitle) ?></h1>
-                    <p class="catalogue-meta"><?= $result['total'] ?> produit<?= $result['total'] > 1 ? 's' : '' ?></p>
                 </header>
                 <?php else: ?>
                 <header class="catalogue-toolbar" aria-label="Résultats">
@@ -126,29 +124,11 @@ $queryParams = static function () use (
                 <?php else: ?>
                     <div class="products-grid">
                         <?php foreach ($result['data'] as $product): ?>
-                            <article class="product-card">
-                                <div class="product-card-image">
-                                    <?php if ($product['image']): ?>
-                                        <img src="<?= Helpers::e($product['image']) ?>" alt="<?= Helpers::e($product['name']) ?>" loading="lazy">
-                                    <?php else: ?>
-                                        <span class="product-placeholder">▣</span>
-                                    <?php endif; ?>
-                                    <?php if ($product['on_sale']): ?>
-                                        <span class="product-badge-sale">Promo</span>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="product-card-body">
-                                    <?php if ($product['brand']): ?>
-                                        <span class="product-brand"><?= Helpers::e($product['brand']) ?></span>
-                                    <?php endif; ?>
-                                    <h2><?= Helpers::e($product['name']) ?></h2>
-                                    <?php if ($product['category_name']): ?>
-                                        <p class="product-cat-label"><?= Helpers::e($product['category_name']) ?></p>
-                                    <?php endif; ?>
-                                    <p class="product-price"><?= Helpers::formatPrice((float) $product['price']) ?></p>
-                                    <a href="https://wa.me/<?= Helpers::e($whatsapp) ?>?text=<?= urlencode('Bonjour, je souhaite des infos sur : ' . $product['name']) ?>" class="btn btn-card" target="_blank" rel="noopener">Commander</a>
-                                </div>
-                            </article>
+                            <?php
+                            $titleTag = 'h2';
+                            $showCategory = true;
+                            require __DIR__ . '/includes/product-card.php';
+                            ?>
                         <?php endforeach; ?>
                     </div>
 

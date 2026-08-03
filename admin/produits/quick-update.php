@@ -82,6 +82,25 @@ if (isset($_POST['category_ids']) && is_array($_POST['category_ids'])) {
 }
 
 if ($data !== []) {
+    // Promo : recalcul / validation à partir des prix fusionnés avec la fiche.
+    if (isset($data['on_sale']) || isset($data['sale_price']) || isset($data['regular_price']) || isset($data['price'])) {
+        $existing = ProductRepository::find($id);
+        if ($existing) {
+            $merged = [
+                'price' => array_key_exists('price', $data) ? $data['price'] : ($existing['price'] ?? null),
+                'regular_price' => array_key_exists('regular_price', $data) ? $data['regular_price'] : ($existing['regular_price'] ?? null),
+                'sale_price' => array_key_exists('sale_price', $data) ? $data['sale_price'] : ($existing['sale_price'] ?? null),
+                'on_sale' => array_key_exists('on_sale', $data) ? $data['on_sale'] : ($existing['on_sale'] ?? 0),
+            ];
+            $pricingError = Helpers::validateProductPricing($merged);
+            if ($pricingError !== null) {
+                $respond(false, $pricingError, $redirect);
+            }
+            $merged = Helpers::normalizeProductPricingFlags($merged);
+            $data['on_sale'] = $merged['on_sale'];
+        }
+    }
+
     ProductRepository::quickUpdate($id, $data);
     AuditLog::record('product.quick_update', 'product', $id, ['fields' => array_keys($data)]);
     $respond(true, 'Produit mis à jour.', $redirect);

@@ -25,7 +25,7 @@ class ProductForm
 
         $mainImage = FileUploader::processField('image', 'products', $existing['image'] ?? null);
 
-        return [
+        $data = [
             'name' => trim($_POST['name'] ?? ''),
             'slug' => trim($_POST['slug'] ?? '') ?: null,
             'description' => trim($_POST['description'] ?? ''),
@@ -43,7 +43,8 @@ class ProductForm
             'catalog_visibility' => $_POST['catalog_visibility'] ?? 'visible',
             'hide_add_to_cart' => isset($_POST['hide_add_to_cart']),
             'featured' => isset($_POST['featured']),
-            'on_sale' => isset($_POST['on_sale']),
+            // La valeur est recalculée uniquement à partir du prix promo TTC.
+            'on_sale' => (string) ($_POST['on_sale'] ?? '0') === '1',
             'category_id' => $categoryIds[0] ?? null,
             'category_ids' => $categoryIds,
             'image' => $mainImage,
@@ -51,5 +52,22 @@ class ProductForm
             'images_json' => json_encode(array_values(array_filter(array_merge($mainImage ? [$mainImage] : [], $secondary))), JSON_UNESCAPED_UNICODE),
             'is_active' => isset($_POST['is_active']),
         ];
+
+        return Helpers::normalizeProductPricingFlags($data);
+    }
+
+    /** @return list<string> */
+    public static function validate(array $data): array
+    {
+        $errors = [];
+        if (($data['name'] ?? '') === '') {
+            $errors[] = 'Le nom est obligatoire.';
+        }
+        $pricingError = Helpers::validateProductPricing($data);
+        if ($pricingError !== null) {
+            $errors[] = $pricingError;
+        }
+
+        return $errors;
     }
 }

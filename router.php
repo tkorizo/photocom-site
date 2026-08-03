@@ -73,6 +73,12 @@ if ($uri === '/a-propos' || $uri === '/qui-sommes-nous') {
     return true;
 }
 
+// Contact
+if ($uri === '/contact') {
+    require $root . '/public/contact.php';
+    return true;
+}
+
 // Blog conseils
 if ($uri === '/conseils' || $uri === '/blog') {
     require $root . '/public/conseils.php';
@@ -82,6 +88,19 @@ if ($uri === '/conseils' || $uri === '/blog') {
 if (preg_match('#^/article/([a-z0-9-]+)$#', $uri, $matches)) {
     $_GET['slug'] = $matches[1];
     require $root . '/public/article.php';
+    return true;
+}
+
+// Fiche produit
+if (preg_match('#^/produit/([a-z0-9-]+)$#', $uri, $matches)) {
+    $_GET['slug'] = $matches[1];
+    require $root . '/public/produit.php';
+    return true;
+}
+
+// Panier
+if ($uri === '/panier' || $uri === '/panier.php') {
+    require $root . '/public/panier.php';
     return true;
 }
 

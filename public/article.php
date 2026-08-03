@@ -50,54 +50,64 @@ $activeNav = 'conseils';
     <link rel="stylesheet" href="/assets/css/public.css">
     <link rel="stylesheet" href="/assets/css/chat.css">
 </head>
-<body class="page-blog page-article">
+<body class="page-blog page-article page-editorial">
     <?php require __DIR__ . '/includes/site-header.php'; ?>
 
     <main>
         <?php if ($notFound): ?>
-            <section class="home-section section-light">
-                <div class="container page-content-body">
-                    <h1>Article introuvable</h1>
-                    <p>Cet article n’existe pas ou n’est plus publié.</p>
-                    <p><a href="/conseils" class="btn btn-primary">Retour aux conseils</a></p>
+            <section class="editorial-section section-light">
+                <div class="container">
+                    <div class="editorial-empty">
+                        <h1>Article introuvable</h1>
+                        <p>Cet article n’existe pas ou n’est plus publié.</p>
+                        <p><a href="/conseils" class="btn btn-primary">Retour aux conseils</a></p>
+                    </div>
                 </div>
             </section>
         <?php else: ?>
-            <article>
-                <header class="article-hero">
-                    <div class="container article-hero-inner">
-                        <p class="article-breadcrumb">
-                            <a href="/conseils">Conseils</a>
-                            <span>/</span>
-                            <span><?= Helpers::e($article['title']) ?></span>
-                        </p>
-                        <h1><?= Helpers::e($article['title']) ?></h1>
-                        <div class="article-meta">
-                            <time datetime="<?= Helpers::e(substr((string) ($article['created_at'] ?? ''), 0, 10)) ?>">
-                                <?= Helpers::e(date('d/m/Y', strtotime((string) ($article['created_at'] ?? 'now')))) ?>
-                            </time>
+            <article class="article-page">
+                <header class="editorial-hero article-hero">
+                    <div class="container">
+                        <div class="editorial-hero-copy article-hero-copy">
+                            <p class="article-breadcrumb">
+                                <a href="/conseils">Conseils</a>
+                                <span aria-hidden="true">/</span>
+                                <span><?= Helpers::e($article['title']) ?></span>
+                            </p>
+                            <h1><?= Helpers::e($article['title']) ?></h1>
+                            <div class="article-meta">
+                                <time datetime="<?= Helpers::e(substr((string) ($article['created_at'] ?? ''), 0, 10)) ?>">
+                                    <?= Helpers::e(date('d/m/Y', strtotime((string) ($article['created_at'] ?? 'now')))) ?>
+                                </time>
+                            </div>
+                            <?php if (!empty($article['excerpt'])): ?>
+                                <p class="editorial-lead article-lead"><?= Helpers::e($article['excerpt']) ?></p>
+                            <?php endif; ?>
                         </div>
-                        <?php if (!empty($article['excerpt'])): ?>
-                            <p class="article-lead"><?= Helpers::e($article['excerpt']) ?></p>
-                        <?php endif; ?>
                     </div>
                 </header>
 
                 <?php if (!empty($article['image'])): ?>
-                    <div class="container article-cover">
-                        <img src="<?= Helpers::e($article['image']) ?>" alt="<?= Helpers::e($article['title']) ?>">
+                    <div class="article-cover-wrap">
+                        <div class="container">
+                            <figure class="article-cover">
+                                <img src="<?= Helpers::e($article['image']) ?>" alt="<?= Helpers::e($article['title']) ?>">
+                            </figure>
+                        </div>
                     </div>
                 <?php endif; ?>
 
-                <div class="home-section section-light">
-                    <div class="container article-body page-content-body">
-                        <?= $article['content'] ?: '<p>Contenu en cours de rédaction.</p>' ?>
+                <section class="editorial-section section-light article-body-section">
+                    <div class="container">
+                        <div class="article-body page-content-body">
+                            <?= $article['content'] ?: '<p>Contenu en cours de rédaction.</p>' ?>
+                        </div>
                     </div>
-                </div>
+                </section>
             </article>
 
             <?php if ($related !== []): ?>
-                <section class="home-section section-muted">
+                <section class="editorial-section section-muted article-related">
                     <div class="container">
                         <header class="section-head">
                             <span class="section-label">À lire aussi</span>

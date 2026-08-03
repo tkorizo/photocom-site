@@ -33,7 +33,7 @@ declare(strict_types=1);
                 <li><a href="/">Accueil</a></li>
                 <li><a href="/catalogue.php">Catalogue</a></li>
                 <li><a href="/a-propos">Qui sommes-nous</a></li>
-                <li><a href="/#contact">Contact</a></li>
+                <li><a href="/contact">Contact</a></li>
             </ul>
         </div>
 
@@ -67,3 +67,13 @@ declare(strict_types=1);
         </div>
     </div>
 </div>
+<?php
+$waDigitsFooter = preg_replace('/\D+/', '', (string) ($whatsapp ?? '')) ?: (string) ($whatsapp ?? '');
+?>
+<script>
+window.PHOTOCOM = Object.assign({}, window.PHOTOCOM || {}, {
+    whatsapp: <?= json_encode($waDigitsFooter, JSON_UNESCAPED_UNICODE) ?>
+});
+</script>
+<script src="/assets/js/cart.js" defer></script>
+<script src="/assets/js/mega-menu.js" defer></script>

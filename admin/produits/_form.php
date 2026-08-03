@@ -69,22 +69,47 @@ require_once dirname(__DIR__) . '/includes/category_picker.php';
         </div>
 
         <h3 class="form-section">Prix (TTC)</h3>
-        <div class="form-row">
+        <p class="text-muted" style="margin:-0.35rem 0 1rem">Tous les prix sont TTC. Une promo s’active <strong>uniquement</strong> si le prix promo est <strong>strictement inférieur</strong> au Prix TTC. Si les deux sont identiques, aucune promo n’est affichée.</p>
+        <?php
+        $postedPrice = $_POST['price'] ?? ($product['price'] ?? '0');
+        $postedRegular = $_POST['regular_price'] ?? ($product['regular_price'] ?? '');
+        $postedSale = $_POST['sale_price'] ?? ($product['sale_price'] ?? '');
+        $pricingSnapshot = [
+            'price' => $postedPrice,
+            'regular_price' => $postedRegular,
+            'sale_price' => $postedSale,
+        ];
+        $autoOnSale = Helpers::hasValidPromoPrice($pricingSnapshot);
+        $pricingFieldError = null;
+        foreach ($errors ?? [] as $err) {
+            if (str_contains((string) $err, 'prix promo') || str_contains((string) $err, 'promotion') || str_contains((string) $err, 'Prix TTC')) {
+                $pricingFieldError = (string) $err;
+                break;
+            }
+        }
+        ?>
+        <div class="form-row" id="product-pricing-fields">
             <label>
                 Prix TTC (MAD) *
-                <input type="number" step="0.01" name="price" value="<?= Helpers::e((string) ($product['price'] ?? $_POST['price'] ?? '0')) ?>">
+                <input type="number" step="0.01" min="0" name="price" id="product-price" value="<?= Helpers::e((string) $postedPrice) ?>">
+                <small class="field-hint">Prix de référence. En promo, c’est le prix barré.</small>
             </label>
             <label>
-                Prix régulier TTC
-                <input type="number" step="0.01" name="regular_price" value="<?= Helpers::e((string) ($product['regular_price'] ?? $_POST['regular_price'] ?? '')) ?>">
+                Prix avant promo TTC (optionnel)
+                <input type="number" step="0.01" min="0" name="regular_price" id="product-regular-price" value="<?= Helpers::e((string) $postedRegular) ?>">
+                <small class="field-hint">Non utilisé pour l’affichage promo du site.</small>
             </label>
             <label>
                 Prix promo TTC
-                <input type="number" step="0.01" name="sale_price" value="<?= Helpers::e((string) ($product['sale_price'] ?? $_POST['sale_price'] ?? '')) ?>">
+                <input type="number" step="0.01" min="0" name="sale_price" id="product-sale-price" value="<?= Helpers::e((string) $postedSale) ?>" class="<?= $pricingFieldError ? 'input-invalid' : '' ?>">
+                <small class="field-hint">Doit être &lt; Prix TTC pour activer la promo.</small>
+                <small class="field-error" id="product-sale-price-error"<?= $pricingFieldError ? '' : ' hidden' ?>><?= Helpers::e($pricingFieldError ?? 'Le prix promo TTC ne peut pas être supérieur au Prix TTC.') ?></small>
             </label>
-            <label class="checkbox-label" style="align-self:end">
-                <input type="checkbox" name="on_sale" <?= ($product['on_sale'] ?? 0) ? 'checked' : '' ?>>
+            <label class="checkbox-label promo-auto-label" style="align-self:end">
+                <input type="hidden" name="on_sale" id="product-on-sale-value" value="<?= $autoOnSale ? '1' : '0' ?>">
+                <input type="checkbox" id="product-on-sale" <?= $autoOnSale ? 'checked' : '' ?> disabled>
                 En promotion
+                <small class="field-hint">Activé auto si promo &lt; Prix TTC</small>
             </label>
         </div>
 
@@ -285,5 +310,62 @@ require_once dirname(__DIR__) . '/includes/category_picker.php';
                 .catch(function () { alert('Impossible d\'ajouter la marque.'); });
         });
     }
+
+    var priceInput = document.getElementById('product-price');
+    var regularInput = document.getElementById('product-regular-price');
+    var saleInput = document.getElementById('product-sale-price');
+    var saleError = document.getElementById('product-sale-price-error');
+    var onSaleBox = document.getElementById('product-on-sale');
+    var onSaleValue = document.getElementById('product-on-sale-value');
+    var productForm = saleInput ? saleInput.closest('form') : null;
+    var pricingMsgHigh = 'Le prix promo TTC ne peut pas être supérieur au Prix TTC.';
+
+    function parsePrice(el) {
+        if (!el || el.value === '') return null;
+        var n = parseFloat(el.value);
+        return isNaN(n) ? null : n;
+    }
+
+    function hasValidPromo() {
+        var sale = parsePrice(saleInput);
+        var price = parsePrice(priceInput);
+        return sale !== null && sale > 0 && price !== null && sale < price - 0.009;
+    }
+
+    function syncPromoFlag() {
+        var valid = hasValidPromo();
+        if (onSaleBox) onSaleBox.checked = valid;
+        if (onSaleValue) onSaleValue.value = valid ? '1' : '0';
+        return valid;
+    }
+
+    function validatePromoPrice() {
+        if (!saleInput || !saleError) return true;
+        var sale = parsePrice(saleInput);
+        var price = parsePrice(priceInput);
+        var tooHigh = sale !== null && price !== null && sale > price + 0.009;
+        saleInput.classList.toggle('input-invalid', tooHigh);
+        saleError.hidden = !tooHigh;
+        if (tooHigh) saleError.textContent = pricingMsgHigh;
+        syncPromoFlag();
+        return !tooHigh;
+    }
+
+    [priceInput, regularInput, saleInput].forEach(function (el) {
+        if (!el) return;
+        el.addEventListener('input', validatePromoPrice);
+        el.addEventListener('change', validatePromoPrice);
+    });
+
+    if (productForm) {
+        productForm.addEventListener('submit', function (e) {
+            syncPromoFlag();
+            if (!validatePromoPrice()) {
+                e.preventDefault();
+                saleInput.focus();
+            }
+        });
+    }
+    validatePromoPrice();
 })();
 </script>

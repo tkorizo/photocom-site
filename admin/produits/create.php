@@ -15,9 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             $data = ProductForm::dataFromPost();
-            if ($data['name'] === '') {
-                $errors[] = 'Le nom est obligatoire.';
-            }
+            $errors = array_merge($errors, ProductForm::validate($data));
             $slug = trim((string) ($data['slug'] ?? '')) !== ''
                 ? Helpers::slugify((string) $data['slug'])
                 : Helpers::slugify($data['name']);

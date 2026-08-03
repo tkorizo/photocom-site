@@ -63,6 +63,15 @@ require __DIR__ . '/icons.php';
                             <span class="nav-icon"><?= adminIcon('home') ?></span> Page d'accueil
                         </a>
                     <?php endif; ?>
+                    <a href="/admin/about/index.php" class="nav-item <?= $currentPage === 'about' ? 'active' : '' ?>">
+                        <span class="nav-icon"><?= adminIcon('doc') ?></span> Qui sommes-nous
+                    </a>
+                    <a href="/admin/contact/index.php" class="nav-item <?= $currentPage === 'contact-page' ? 'active' : '' ?>">
+                        <span class="nav-icon"><?= adminIcon('chat') ?></span> Contact
+                    </a>
+                    <a href="/admin/conseils-page/index.php" class="nav-item <?= $currentPage === 'conseils-page' ? 'active' : '' ?>">
+                        <span class="nav-icon"><?= adminIcon('pen') ?></span> Page Conseils
+                    </a>
                     <a href="/admin/articles/index.php" class="nav-item <?= $currentPage === 'articles' ? 'active' : '' ?>">
                         <span class="nav-icon"><?= adminIcon('pen') ?></span> Articles
                     </a>

@@ -60,7 +60,7 @@ $headerOrder = SettingRepository::parseHeaderOrder($home['header_order'] ?? 'log
                             <a href="/catalogue.php">Catalogue</a>
                             <a href="/a-propos">Qui sommes-nous</a>
                             <a href="/conseils">Conseils</a>
-                            <a href="/#contact">Contact</a>
+                            <a href="/contact">Contact</a>
                         </nav>
                     <?php elseif ($part === 'search' && $searchVisible): ?>
                         <form class="header-search" action="/catalogue.php" method="get" role="search">
@@ -73,6 +73,15 @@ $headerOrder = SettingRepository::parseHeaderOrder($home['header_order'] ?? 'log
                 <?php endforeach; ?>
 
                 <div class="header-actions">
+                    <a href="/panier" class="header-icon-btn header-cart-btn" data-cart-link aria-label="Panier">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M6 6h15l-1.5 9h-12z"/>
+                            <path d="M6 6L5 3H2"/>
+                            <circle cx="9" cy="20" r="1.4"/>
+                            <circle cx="18" cy="20" r="1.4"/>
+                        </svg>
+                        <span class="header-cart-badge" data-cart-badge hidden>0</span>
+                    </a>
                     <button type="button" class="header-icon-btn mega-menu-toggle" aria-label="Ouvrir le menu catégories" aria-expanded="false">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
                     </button>
