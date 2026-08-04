@@ -76,7 +76,7 @@ $activeNav = 'about';
         <?php endif; ?>
 
         <?php if ($isOn('about_pillars_enabled')): ?>
-        <section class="editorial-section section-muted">
+        <section class="editorial-section about-pillars-section">
             <div class="container">
                 <header class="section-head section-align-center">
                     <?php if ($about['about_pillars_label'] !== ''): ?>

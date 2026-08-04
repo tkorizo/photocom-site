@@ -142,25 +142,14 @@ if ($heroMediaType === 'none') {
                     <h2><?= Helpers::e($home['featured_title']) ?></h2>
                 </header>
 
-                <?php
-                $featuredSlider = array_values($featuredProducts);
-                // Doubler pour une boucle fluide si assez d’items
-                $featuredLoop = count($featuredSlider) > 3
-                    ? array_merge($featuredSlider, $featuredSlider)
-                    : $featuredSlider;
-                ?>
-                <div class="featured-slider" data-featured-slider<?= count($featuredSlider) > 3 ? ' data-animate="1"' : '' ?>>
-                    <div class="featured-slider-viewport">
-                        <div class="featured-slider-track">
-                            <?php foreach ($featuredLoop as $product): ?>
-                                <?php
-                                $extraClass = 'featured-slide-card';
-                                $titleTag = 'h3';
-                                require __DIR__ . '/includes/product-card.php';
-                                ?>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
+                <div class="products-grid products-grid-compact">
+                    <?php foreach ($featuredProducts as $product): ?>
+                        <?php
+                        $extraClass = 'product-card-minimal';
+                        $titleTag = 'h3';
+                        require __DIR__ . '/includes/product-card.php';
+                        ?>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </section>
@@ -284,7 +273,6 @@ if ($heroMediaType === 'none') {
     <?php require __DIR__ . '/includes/site-chat.php'; ?>
     <?php require __DIR__ . '/includes/site-cookies.php'; ?>
     <script src="/assets/js/mega-menu.js"></script>
-    <script src="/assets/js/featured-slider.js"></script>
     <script src="/assets/js/chat.js"></script>
 </body>
 </html>

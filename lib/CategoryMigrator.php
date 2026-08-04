@@ -44,13 +44,62 @@ class CategoryMigrator
 
         $assignments = self::classifyAllProducts();
         $stats = self::buildStats($assignments);
+        $stats['brands_created'] = [];
+        $stats['brand_updates'] = 0;
+        $stats['category_updates'] = 0;
 
         if ($dryRun) {
+            foreach ($assignments as $productId => $item) {
+                $stmt = $db->prepare('SELECT brand, category_id FROM products WHERE id = :id');
+                $stmt->execute(['id' => $productId]);
+                $row = $stmt->fetch() ?: [];
+                $oldBrand = trim((string) ($row['brand'] ?? ''));
+                $newBrand = trim((string) ($item['brand'] ?? ''));
+                $oldCat = (int) ($row['category_id'] ?? 0);
+                $newCat = $slugToId[$item['slug']] ?? 0;
+                if ($newBrand !== '' && $newBrand !== $oldBrand) {
+                    $stats['brand_updates']++;
+                }
+                if ($newCat > 0 && $newCat !== $oldCat) {
+                    $stats['category_updates']++;
+                }
+            }
+
             return $stats;
         }
 
+        // Créer les marques manquantes détectées
+        foreach ($assignments as $item) {
+            $brand = trim((string) ($item['brand'] ?? ''));
+            if ($brand === '') {
+                continue;
+            }
+            if (!BrandRepository::findByName($brand)) {
+                BrandRepository::create($brand);
+                $stats['brands_created'][] = $brand;
+            }
+        }
+        $stats['brands_created'] = array_values(array_unique($stats['brands_created']));
+
         $db->beginTransaction();
         try {
+            // Compter avant écriture
+            foreach ($assignments as $productId => $item) {
+                $stmt = $db->prepare('SELECT brand, category_id FROM products WHERE id = :id');
+                $stmt->execute(['id' => $productId]);
+                $row = $stmt->fetch() ?: [];
+                $oldBrand = trim((string) ($row['brand'] ?? ''));
+                $newBrand = trim((string) ($item['brand'] ?? ''));
+                $oldCat = (int) ($row['category_id'] ?? 0);
+                $newCat = $slugToId[$item['slug']] ?? 0;
+                if ($newBrand !== '' && $newBrand !== $oldBrand) {
+                    $stats['brand_updates']++;
+                }
+                if ($newCat > 0 && $newCat !== $oldCat) {
+                    $stats['category_updates']++;
+                }
+            }
+
             $db->exec('DELETE FROM product_categories');
             self::applyAssignments($db, $assignments, $slugToId);
             $db->commit();
@@ -71,9 +120,22 @@ class CategoryMigrator
 
         $assignments = [];
         foreach ($products as $product) {
+            $detected = ProductClassifier::detectBrand($product);
+            $existing = trim((string) ($product['brand'] ?? ''));
+            $name = ' ' . mb_strtolower(trim((string) ($product['name'] ?? ''))) . ' ';
+
+            if ($detected !== null) {
+                $brand = $detected;
+            } elseif ($existing !== '' && str_contains($name, ' ' . mb_strtolower($existing) . ' ')) {
+                $brand = $existing;
+            } else {
+                // Marque absente du titre = souvent une fausse attribution héritée
+                $brand = null;
+            }
+
             $assignments[(int) $product['id']] = [
                 'slug' => ProductClassifier::classify($product),
-                'brand' => ProductClassifier::detectBrand($product),
+                'brand' => $brand,
             ];
         }
 
@@ -147,8 +209,17 @@ class CategoryMigrator
             'INSERT INTO product_categories (product_id, category_id) VALUES (:product_id, :category_id)'
         );
         $updateProductStmt = $db->prepare(
-            'UPDATE products SET category_id = :category_id, brand = CASE WHEN :brand != \'\' THEN :brand ELSE brand END WHERE id = :id'
+            'UPDATE products SET
+                category_id = :category_id,
+                brand = :brand,
+                updated_at = datetime(\'now\')
+             WHERE id = :id'
         );
+
+        $parentMap = [];
+        foreach ($db->query('SELECT id, parent_id FROM categories')->fetchAll() as $row) {
+            $parentMap[(int) $row['id']] = $row['parent_id'] !== null ? (int) $row['parent_id'] : null;
+        }
 
         foreach ($assignments as $productId => $item) {
             $categoryId = $slugToId[$item['slug']] ?? $fallbackId;
@@ -156,10 +227,14 @@ class CategoryMigrator
                 continue;
             }
             $linkStmt->execute(['product_id' => $productId, 'category_id' => $categoryId]);
+            $parentId = $parentMap[$categoryId] ?? null;
+            if ($parentId) {
+                $linkStmt->execute(['product_id' => $productId, 'category_id' => $parentId]);
+            }
             $updateProductStmt->execute([
                 'id' => $productId,
                 'category_id' => $categoryId,
-                'brand' => $item['brand'] ?? '',
+                'brand' => $item['brand'] !== null && $item['brand'] !== '' ? $item['brand'] : null,
             ]);
         }
     }

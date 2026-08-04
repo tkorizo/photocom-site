@@ -22,7 +22,17 @@ if (!$dry && isset($stats['categories_created'])) {
     echo "Catégories créées : {$stats['categories_created']}\n";
 }
 echo "Classés automatiquement : {$stats['classified']}\n";
-echo "Fallback (adaptateurs & divers) : {$stats['fallback']}\n\n";
+echo "Fallback (adaptateurs & divers) : {$stats['fallback']}\n";
+if (isset($stats['brand_updates'])) {
+    echo "Marques mises à jour : {$stats['brand_updates']}\n";
+}
+if (isset($stats['category_updates'])) {
+    echo "Catégories mises à jour : {$stats['category_updates']}\n";
+}
+if (!empty($stats['brands_created'])) {
+    echo 'Marques créées : ' . implode(', ', $stats['brands_created']) . "\n";
+}
+echo "\n";
 
 echo "Répartition par sous-catégorie :\n";
 arsort($stats['by_slug']);

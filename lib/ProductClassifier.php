@@ -22,35 +22,43 @@ class ProductClassifier
 
     public static function detectBrand(array $product): ?string
     {
-        $text = self::buildText($product);
+        // Uniquement le NOM : les descriptions listent souvent la compatibilité
+        // (Canon/Nikon/Sony) et faussent la marque réelle.
         $name = self::normalize((string) ($product['name'] ?? ''));
 
         $brands = [
-            'Canon' => ['canon', 'eos r', 'eos m', 'eos 5', 'eos 6', 'eos 7', 'eos 8', 'eos 9', 'powershot', 'speedlite', ' ef ', ' rf ', 'ef-s', 'ef-m'],
-            'Nikon' => ['nikon', 'nikkor', 'speedlight sb-', ' en-el', ' z mount', ' nikon z'],
-            'Sony' => ['sony', 'alpha 7', 'alpha 9', ' ilme-fx', ' fe ', 'sel2470', 'sel', ' np-f', ' mrw-'],
-            'Fujifilm' => ['fujifilm', 'fuji ', 'fujicolor', 'frontier', 'gfx', 'dx100', 'de100'],
-            'DJI' => ['dji', 'osmo', 'ronin', 'rs 3', 'rs 4', 'rs 5', 'rs3', 'rs4', 'rs5'],
+            'IDP Smart' => ['idp smart', 'smart-idp'],
             'Insta360' => ['insta360', 'insta 360'],
-            'Tolifo' => ['tolifo'],
-            'Boya' => ['boya', 'boyamic', 'boyalink'],
-            'Westcott' => ['westcott', 'fj80', 'fj400', 'fj-x', 'rapid box', 'x-drop'],
-            'Citizen' => ['citizen', ' cx-', ' cy-', ' cx2w', 'op-900'],
+            'PortKeys' => ['portkeys'],
+            'Godspeed' => ['godspeed'],
+            'Komers' => ['komers'],
+            'Westcott' => ['westcott', 'fj80', 'fj400', 'fj-x', 'rapid box', 'x-drop', 'pro light mods'],
+            'DIGIPRO' => ['digipro'],
             'Desview' => ['desview'],
+            'Citizen' => ['citizen', ' cx-02', ' cy-02', ' cx2w', 'op-900', ' cz-01'],
+            'Tolifo' => ['tolifo', 'mactop'],
+            'Boya' => ['boya', 'boyamic', 'boyalink', 'by-wm', 'by-m1', 'by-m1000', 'by-dm', 'by-pm', 'by-mm', ' by-k'],
+            'Yelangu' => ['yelangu'],
+            'Kodak' => ['kodak'],
+            'Elinchrom' => ['elinchrom'],
+            'Bowens' => ['bowens'],
             'Godox' => ['godox'],
             'Rode' => ['rode', 'videomic'],
             'Sigma' => ['sigma '],
             'Tamron' => ['tamron'],
-            'PortKeys' => ['portkeys'],
-            'DIGIPRO' => ['digipro'],
-            'IDP Smart' => ['idp smart', 'smart-idp', 'smart 31', 'smart 51'],
-            'Godspeed' => ['godspeed'],
-            'Komers' => ['komers'],
+            'Manfrotto' => ['manfrotto'],
+            'Zhiyun' => ['zhiyun'],
+            'Neewer' => ['neewer'],
+            'Fujifilm' => ['fujifilm', 'fuji ', 'fujicolor', 'frontier', 'gfx', 'dx100', 'de100'],
+            'DJI' => [' dji ', 'osmo', 'ronin', ' rs 3', ' rs 4', ' rs 5', 'rs3 ', 'rs4 ', 'rs5 '],
+            'Nikon' => ['nikon', 'nikkor'],
+            'Canon' => ['canon', 'eos r', 'eos m', 'eos 5', 'eos 6', 'eos 7', 'eos 8', 'eos 9', 'powershot', 'speedlite', 'lp-e'],
+            'Sony' => ['sony', 'alpha 7', 'alpha 9', 'ilme-fx', ' sel', 'np-fz', 'np-fw', 'mrw-'],
         ];
 
         foreach ($brands as $brand => $keywords) {
             foreach ($keywords as $keyword) {
-                if (str_contains($text, $keyword) || str_contains($name, trim($keyword))) {
+                if (str_contains($name, $keyword)) {
                     return $brand;
                 }
             }
@@ -86,12 +94,36 @@ class ProductClassifier
 
     private static function matchDefinitive(string $name, string $text): ?string
     {
-        // Transport — priorité absolue (évite les faux positifs « reflex / appareil photo » dans la description)
-        if (self::containsAny($text, [
-            'sac à dos', 'sac a dos', 'sacoche', 'housse ', 'étui ', 'etui ', 'flight case',
-            'sacs de transport', 'bag for camera', 'rolling bag', 'gilet de photographie',
-            ' sac photo', 'sac bandoulière', 'sac bandouliere',
+        // Accessoires lumière / softbox — avant les sacs (évite faux positifs « pack/sac »)
+        if (self::containsAny($name, [
+            'softbox', 'rapid box', 'pro light mods', 'parapluie', 'réflecteur', 'reflecteur',
+            'beauty', 'bol de beaut', 'speedlight', 'speedlite', 'flash ', 'adaptateur monture',
+            'monture bowens', 'monture elinchrom',
         ])) {
+            if (self::containsAny($name, ['speedlight', 'speedlite', 'flash cobra', 'kit flash', 'fj80', 'flash '])) {
+                return 'flash-cobra-studio';
+            }
+            return 'modificateurs-lumiere';
+        }
+
+        // Photobooth / borne — avant sacs (certains textes parlent de transport)
+        if (self::containsAny($name, [
+            'photo booth', 'photobooth', 'miroir magique', '360° photo', '360 photo', 'présentoir rotatif',
+            'presentoir rotatif', 'borne photo', 'sublimation',
+        ])) {
+            return 'photobooth-sublimation';
+        }
+
+        // Transport — priorité haute, sauf si le nom pointe clairement ailleurs
+        if (self::containsAny($name, [
+            'sac à dos', 'sac a dos', 'sacoche', 'housse ', 'étui ', 'etui ', 'flight case',
+            'sacs de transport', 'sac de transport', 'rolling bag', 'gilet de photographie',
+            'sac photo', 'sac bandoulière', 'sac bandouliere', 'sac à roulettes', 'sac a roulettes',
+        ]) || (
+            self::containsAny($text, [
+                'sac à dos', 'sac a dos', 'sacoche', 'flight case', 'sacs de transport', 'sac de transport',
+            ]) && !self::containsAny($name, ['softbox', 'fond ', 'trépied', 'trepied', 'led ', 'flash', 'objectif', 'booth', 'miroir'])
+        )) {
             return 'sacs-transport';
         }
 
@@ -138,7 +170,7 @@ class ProductClassifier
             ],
             'modificateurs-lumiere' => [
                 'softbox', 'parapluie', 'réflecteur', 'reflecteur', 'snoot', 'dôme diffuseur',
-                'rapid box', 'tente diffusante', 'boîte à lumière', 'boite a lumiere', 'lanterne',
+                'rapid box', 'pro light mods', 'tente diffusante', 'boîte à lumière', 'boite a lumiere', 'lanterne',
                 'boule sphérique', ' grid', 'bol de beauté', 'switch insert', 'adaptateur monture',
                 'monture bowens', 'monture elinchrom', 'feuille de filtres', 'gélatines', 'creative pack',
             ],
@@ -146,6 +178,7 @@ class ProductClassifier
                 'speedlight', 'speedlite', 'flash cobra', 'tête flash', 'kit flash', 'flash tolifo',
                 'mactop', 'tornado t-', 'lampe flash', 'flash ac slave', 'déclencheur radio', 'déclencheur de flash',
                 'support de lampe flash', ' mt-1000', ' mt-200', ' t-200b', '430ex', 'sb-5000', 'sb-',
+                'fj80', 'fj400', 'fj-x',
             ],
             'led-continue-cob' => [
                 ' cob ', 'led tolifo', 'tolifo led', 'led video', 'panneau led', 'projecteur led',

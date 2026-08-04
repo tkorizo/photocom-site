@@ -938,7 +938,11 @@ a:hover { color: var(--primary-dark); }
     color: var(--text);
 }
 
-.btn-outline:hover { border-color: var(--primary); color: var(--text); }
+.btn-outline:hover {
+    border-color: var(--text-dark);
+    background: var(--text-dark);
+    color: #ffffff;
+}
 
 .hero-controls {
     display: flex;
@@ -2620,13 +2624,14 @@ body.page-home .brand-block:hover {
 
 .brand-block--logo {
     background: #fff;
-    padding: 1rem 1.25rem;
+    min-height: 150px;
+    padding: 1.5rem 1.75rem;
 }
 
 .brand-logo-img {
     display: block;
-    max-height: 48px;
-    max-width: 140px;
+    max-height: 110px;
+    max-width: 280px;
     width: auto;
     height: auto;
     object-fit: contain;
@@ -2857,13 +2862,21 @@ body.page-home .brand-block:hover {
 
 .btn-outline:hover {
     background: var(--text-dark);
-    color: #fff;
+    color: #ffffff !important;
     border-color: var(--text-dark);
 }
 
-.section-muted .btn-outline {
+.section-muted .btn-outline,
+.section-light .btn-outline {
     border-color: var(--text-dark);
     color: var(--text-dark);
+}
+
+.section-muted .btn-outline:hover,
+.section-light .btn-outline:hover {
+    background: var(--text-dark);
+    color: #ffffff !important;
+    border-color: var(--text-dark);
 }
 
 /* Static page */
@@ -3379,10 +3392,34 @@ body.page-home .brand-block:hover {
 /* ─── Pages éditoriales (À propos / Contact / Conseils) ─── */
 .page-editorial .editorial-hero {
     background:
-        linear-gradient(180deg, #f7f7f9 0%, #ffffff 100%);
-    border-bottom: 1px solid #ebebef;
-    padding: clamp(3.5rem, 8vw, 6rem) 0 clamp(3rem, 6vw, 4.5rem);
+        linear-gradient(
+            to top,
+            rgba(0, 0, 0, 0.72) 0%,
+            rgba(10, 10, 12, 0.55) 48%,
+            rgba(16, 16, 18, 0.88) 100%
+        ),
+        radial-gradient(ellipse at 18% 85%, rgba(232, 31, 5, 0.16), transparent 48%),
+        linear-gradient(145deg, #141418 0%, #0a0a0c 52%, #1a1210 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: clamp(3.5rem, 8vw, 6rem) 0 clamp(3.5rem, 7vw, 5.5rem);
     text-align: left;
+    color: #ffffff;
+}
+
+.page-editorial .editorial-hero .section-label {
+    color: rgba(255, 255, 255, 0.72);
+    border-bottom: 1px solid rgba(232, 31, 5, 0.65);
+    padding-bottom: 0.55rem;
+    display: inline-block;
+    margin-bottom: 1rem;
+}
+
+.page-editorial .editorial-hero h1 {
+    color: #ffffff;
+}
+
+.page-editorial .editorial-hero .editorial-lead {
+    color: rgba(255, 255, 255, 0.82);
 }
 
 .page-article .article-hero {
@@ -3421,8 +3458,45 @@ body.page-home .brand-block:hover {
     text-align: left;
 }
 
+.page-editorial .editorial-section {
+    padding: clamp(4.5rem, 8vw, 7rem) 0;
+}
+
 .page-editorial .editorial-section.section-muted {
     background: #f7f7f9;
+}
+
+/* Section engagements (pillars) — fond noir, texte blanc */
+.page-about .about-pillars-section,
+.page-editorial .about-pillars-section {
+    background: #0a0a0c;
+    color: #ffffff;
+}
+
+.page-about .about-pillars-section .section-label,
+.page-editorial .about-pillars-section .section-label {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.page-about .about-pillars-section h2,
+.page-editorial .about-pillars-section h2 {
+    color: #ffffff;
+}
+
+.page-about .about-pillars-section .about-pillar,
+.page-editorial .about-pillars-section .about-pillar {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.page-about .about-pillars-section .about-pillar h3,
+.page-editorial .about-pillars-section .about-pillar h3 {
+    color: #ffffff;
+}
+
+.page-about .about-pillars-section .about-pillar p,
+.page-editorial .about-pillars-section .about-pillar p {
+    color: rgba(255, 255, 255, 0.78);
 }
 
 .page-editorial .about-cta-band,
@@ -3435,11 +3509,11 @@ body.page-home .brand-block:hover {
 }
 
 .page-editorial .section-head {
-    margin-bottom: clamp(2rem, 4vw, 3rem);
+    margin-bottom: clamp(2.25rem, 4.5vw, 3.5rem);
 }
 
 .page-editorial .section-sub {
-    margin-top: 0.75rem;
+    margin-top: 0.85rem;
     max-width: 38rem;
     color: #4b5563;
     line-height: 1.6;
@@ -3467,7 +3541,7 @@ body.page-home .brand-block:hover {
 .about-intro {
     display: grid;
     grid-template-columns: 1.35fr 0.95fr;
-    gap: clamp(2.5rem, 6vw, 4.5rem);
+    gap: clamp(2.75rem, 6vw, 5rem);
     align-items: start;
 }
 
@@ -3480,18 +3554,18 @@ body.page-home .brand-block:hover {
 
 .about-intro-text p {
     color: #374151;
-    margin-bottom: 1.05rem;
+    margin-bottom: 1.25rem;
     line-height: 1.7;
 }
 
 .about-facts {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.85rem;
+    gap: 1.25rem;
 }
 
 .about-fact {
-    padding: 1.25rem 1.15rem;
+    padding: 1.45rem 1.3rem;
     border: 1px solid #ebebef;
     border-radius: var(--radius);
     background: #ffffff;
@@ -3514,11 +3588,11 @@ body.page-home .brand-block:hover {
 .about-pillars {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1.15rem;
+    gap: 1.75rem;
 }
 
 .about-pillar {
-    padding: 1.6rem 1.35rem;
+    padding: 1.85rem 1.5rem;
     background: #ffffff;
     border: 1px solid #ebebef;
     border-radius: var(--radius);
@@ -3527,7 +3601,7 @@ body.page-home .brand-block:hover {
 
 .about-pillar h3 {
     font-size: 1rem;
-    margin: 0 0 0.75rem;
+    margin: 0 0 0.85rem;
     color: var(--text-dark);
 }
 
@@ -3542,19 +3616,19 @@ body.page-home .brand-block:hover {
     list-style: none;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem 1.5rem;
+    gap: 1.5rem 1.75rem;
     margin: 0;
     padding: 0;
 }
 
 .about-audience-list li {
-    padding: 1.35rem 1.3rem;
+    padding: 1.55rem 1.45rem;
     border: 1px solid #ebebef;
     border-radius: var(--radius);
     background: #ffffff;
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.55rem;
 }
 
 .about-audience-list strong {
@@ -3598,7 +3672,7 @@ body.page-home .brand-block:hover {
 .about-contact-grid {
     display: grid;
     grid-template-columns: 1.2fr 0.9fr;
-    gap: clamp(2rem, 5vw, 4rem);
+    gap: clamp(2.75rem, 5vw, 4.5rem);
     align-items: start;
 }
 
@@ -3663,15 +3737,21 @@ body.page-home .brand-block:hover {
 .contact-layout {
     display: grid;
     grid-template-columns: 1.25fr 0.85fr;
-    gap: clamp(1.75rem, 4vw, 3rem);
+    gap: clamp(2.5rem, 5vw, 4rem);
     align-items: start;
+}
+
+.contact-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
 }
 
 .contact-panel {
     background: #ffffff;
     border: 1px solid #ebebef;
     border-radius: var(--radius);
-    padding: 1.6rem 1.5rem 1.7rem;
+    padding: 1.85rem 1.7rem 2rem;
 }
 
 .contact-panel + .contact-panel,
@@ -3679,8 +3759,9 @@ body.page-home .brand-block:hover {
     margin-top: 0;
 }
 
+.contact-main .section-head + .contact-panel,
 .contact-panel-accent {
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;
 }
 
 .contact-panel h2,
@@ -3783,7 +3864,14 @@ body.page-home .brand-block:hover {
 }
 
 .page-blog .blog-grid {
-    margin-top: 0.25rem;
+    margin-top: 0.5rem;
+    gap: 2rem;
+}
+
+.blog-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
 }
 
 @media (max-width: 960px) {
@@ -3816,20 +3904,15 @@ body.page-home .brand-block:hover {
     }
 
     .page-editorial .editorial-section {
-        padding: 3.25rem 0;
+        padding: 3.75rem 0;
     }
 }
 
 /* ─── Blog / Conseils ─── */
-.blog-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-}
-
 .blog-grid--related {
     grid-template-columns: repeat(3, 1fr);
     margin-top: 1.5rem;
+    gap: 2rem;
 }
 
 .blog-card {
