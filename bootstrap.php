@@ -18,6 +18,12 @@ ini_set('session.use_only_cookies', '1');
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Strict');
 
+if (!function_exists('env')) {
+    require_once ROOT_PATH . '/config/env.php';
+}
+
+ErrorLogger::boot();
+
 if (class_exists('SecurityHeaders')) {
     SecurityHeaders::apply();
 }

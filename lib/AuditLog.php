@@ -114,6 +114,7 @@ class AuditLog
             'settings.cookies' => 'Paramètres cookies',
             'settings.chat' => 'Paramètres chat',
             'settings.files' => 'Fichiers médias',
+            'errors.clear' => 'Journal des erreurs vidé',
             'user.create' => 'Utilisateur créé',
             'user.update' => 'Utilisateur modifié',
             'user.delete' => 'Utilisateur supprimé',

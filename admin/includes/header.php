@@ -103,6 +103,9 @@ require __DIR__ . '/icons.php';
                         <a href="/admin/settings/audit-log.php" class="nav-item <?= $currentPage === 'audit' ? 'active' : '' ?>">
                             <span class="nav-icon"><?= adminIcon('log') ?></span> Journal d'activité
                         </a>
+                        <a href="/admin/settings/errors.php" class="nav-item <?= $currentPage === 'errors' ? 'active' : '' ?>">
+                            <span class="nav-icon"><?= adminIcon('log') ?></span> Journal des erreurs
+                        </a>
                     <?php endif; ?>
                 <?php endif; ?>
 

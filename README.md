@@ -24,8 +24,11 @@ php -S localhost:8000 router.php
 |-----|-------------|
 | http://localhost:8000 | Site vitrine |
 | http://localhost:8000/admin/login.php | Dashboard admin |
+| http://localhost:8000/admin/settings/errors.php | Journal des erreurs (super admin) |
 
 Identifiants par défaut (après init) : voir `.env` (`ADMIN_EMAIL` / `ADMIN_PASSWORD`).
+
+En local, `APP_DEBUG=1` affiche les détails d’erreur. Sur Hostinger, mettez `APP_DEBUG=0` : les erreurs restent dans `storage/logs/php-errors.log`.
 
 ## Import WordPress (une seule fois)
 
