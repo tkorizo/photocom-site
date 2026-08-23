@@ -856,6 +856,7 @@ input.input-invalid,
 .brands-table col.col-name { width: 18%; }
 .brands-table col.col-slug { width: 16%; }
 .brands-table col.col-active { width: 88px; }
+.brands-table col.col-filter { width: 88px; }
 .brands-table col.col-order { width: 88px; }
 .brands-table col.col-file { width: 18%; }
 .brands-table col.col-actions { width: 170px; }

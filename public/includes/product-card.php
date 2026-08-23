@@ -28,21 +28,37 @@ $waDigits = preg_replace('/\D+/', '', (string) $whatsapp) ?: (string) $whatsapp;
 $waUrl = 'https://wa.me/' . $waDigits . '?text=' . rawurlencode('Bonjour, je souhaite des infos sur : ' . $product['name']);
 $canAddToCart = empty($product['hide_add_to_cart'])
     && empty($product['is_out_of_stock'])
+    && empty($product['is_coming_soon'])
     && (($product['stock_status'] ?? 'instock') !== 'outofstock');
+$isComingSoon = !empty($product['is_coming_soon']);
+$isOutOfStock = !empty($product['is_out_of_stock']) || (($product['stock_status'] ?? '') === 'outofstock');
+$cardStateClass = trim(($isComingSoon ? ' is-coming-soon' : '') . ($isOutOfStock ? ' is-out-of-stock' : ''));
 ?>
-<article class="product-card product-card-framed<?= $extraClass !== '' ? ' ' . Helpers::e($extraClass) : '' ?>">
+<article class="product-card product-card-framed<?= $extraClass !== '' ? ' ' . Helpers::e($extraClass) : '' ?><?= $cardStateClass ?>">
     <?php if ($hasLink): ?>
-        <a href="<?= Helpers::e($cardHref) ?>" class="product-card-image" target="_blank" rel="noopener">
+        <a href="<?= Helpers::e($cardHref) ?>" class="product-card-image">
     <?php else: ?>
         <div class="product-card-image">
     <?php endif; ?>
             <?php if (!empty($product['image'])): ?>
-                <img src="<?= Helpers::e($product['image']) ?>" alt="<?= Helpers::e($product['name']) ?>" loading="lazy">
+                <img
+                    src="<?= Helpers::e($product['image']) ?>"
+                    alt="<?= Helpers::e($product['name']) ?>"
+                    width="600"
+                    height="600"
+                    loading="lazy"
+                    decoding="async"
+                >
             <?php else: ?>
                 <span class="product-placeholder">PC</span>
             <?php endif; ?>
+            <?php if ($isComingSoon): ?>
+                <span class="product-badge-soon">Bientôt disponible</span>
+            <?php elseif ($isOutOfStock): ?>
+                <span class="product-badge-out">En rupture</span>
+            <?php endif; ?>
             <?php if ($pricing['on_sale'] && $pricing['discount_percent'] !== null): ?>
-                <span class="product-badge-discount">−<?= (int) $pricing['discount_percent'] ?>%</span>
+                <span class="product-badge-discount<?= ($isComingSoon || $isOutOfStock) ? ' is-with-status' : '' ?>">−<?= (int) $pricing['discount_percent'] ?>%</span>
             <?php endif; ?>
     <?php if ($hasLink): ?>
         </a>
@@ -57,7 +73,7 @@ $canAddToCart = empty($product['hide_add_to_cart'])
 
         <<?= $titleTag ?>>
             <?php if ($hasLink): ?>
-                <a href="<?= Helpers::e($cardHref) ?>" target="_blank" rel="noopener"><?= Helpers::e($product['name']) ?></a>
+                <a href="<?= Helpers::e($cardHref) ?>"><?= Helpers::e($product['name']) ?></a>
             <?php else: ?>
                 <?= Helpers::e($product['name']) ?>
             <?php endif; ?>
@@ -100,5 +116,5 @@ $canAddToCart = empty($product['hide_add_to_cart'])
     </div>
 </article>
 <?php
-unset($cardHref, $titleTag, $showCategory, $showCommand, $extraClass, $pricing, $waUrl, $waDigits, $hasLink, $canAddToCart);
+unset($cardHref, $titleTag, $showCategory, $showCommand, $extraClass, $pricing, $waUrl, $waDigits, $hasLink, $canAddToCart, $isComingSoon, $isOutOfStock, $cardStateClass);
 ?>

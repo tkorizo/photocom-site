@@ -29,8 +29,7 @@ if (!$page || !(int) ($page['is_published'] ?? 0)) {
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>
-    <link rel="stylesheet" href="/assets/css/public.css">
-    <link rel="stylesheet" href="/assets/css/chat.css">
+    <?php require __DIR__ . '/includes/site-assets.php'; ?>
 </head>
 <body>
     <?php require __DIR__ . '/includes/site-header.php'; ?>
@@ -49,7 +48,6 @@ if (!$page || !(int) ($page['is_published'] ?? 0)) {
     <?php require __DIR__ . '/includes/site-footer.php'; ?>
     <?php require __DIR__ . '/includes/site-chat.php'; ?>
     <?php require __DIR__ . '/includes/site-cookies.php'; ?>
-    <script src="/assets/js/mega-menu.js"></script>
-    <script src="/assets/js/chat.js"></script>
+    <?php require __DIR__ . '/includes/site-end-scripts.php'; ?>
 </body>
 </html>

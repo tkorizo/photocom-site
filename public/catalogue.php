@@ -79,8 +79,7 @@ $queryParams = static function () use (
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>
-    <link rel="stylesheet" href="/assets/css/public.css">
-    <link rel="stylesheet" href="/assets/css/chat.css">
+    <?php require __DIR__ . '/includes/site-assets.php'; ?>
 </head>
 <body class="page-catalogue<?= $category ? ' has-category-hero' : '' ?>">
     <?php require __DIR__ . '/includes/site-header.php'; ?>
@@ -105,8 +104,16 @@ $queryParams = static function () use (
     </section>
     <?php endif; ?>
     <main class="catalogue-main">
+        <?php
+        $filtersPartial = 'toolbar';
+        require __DIR__ . '/includes/catalogue-filters.php';
+        ?>
         <div class="container catalogue-layout">
-            <?php require __DIR__ . '/includes/catalogue-filters.php'; ?>
+            <?php
+            $filtersPartial = 'drawer';
+            require __DIR__ . '/includes/catalogue-filters.php';
+            unset($filtersPartial);
+            ?>
 
             <div class="catalogue-results">
                 <?php if (!$category): ?>
@@ -145,10 +152,12 @@ $queryParams = static function () use (
         </div>
     </main>
 
-    <?php require __DIR__ . '/includes/site-footer.php'; ?>
+    <?php
+    $loadFiltersDrawer = true;
+    require __DIR__ . '/includes/site-footer.php';
+    ?>
     <?php require __DIR__ . '/includes/site-chat.php'; ?>
     <?php require __DIR__ . '/includes/site-cookies.php'; ?>
-    <script src="/assets/js/mega-menu.js"></script>
-    <script src="/assets/js/chat.js"></script>
+    <?php require __DIR__ . '/includes/site-end-scripts.php'; ?>
 </body>
 </html>

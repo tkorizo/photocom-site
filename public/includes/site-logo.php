@@ -32,8 +32,9 @@ if ($logoVariant === 'mark') {
     alt="<?= Helpers::e($siteName) ?>"
     class="<?= Helpers::e($logoClass) ?>"
     width="<?= (int) $logoWidth ?>"
-    height="auto"
+    height="<?= (int) max(24, (int) round($logoWidth * 0.32)) ?>"
     decoding="async"
+    <?= ($logoClass ?? '') !== 'header-logo-img' ? 'loading="lazy"' : '' ?>
 >
 <?php
 $logoVariant = 'main';

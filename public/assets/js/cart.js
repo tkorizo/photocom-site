@@ -1,14 +1,20 @@
 /**
- * Panier PHOTOCOM (localStorage) — ajout, quantités, badge header, commande WhatsApp.
+ * Panier PHOTOCOM — localStorage + sync serveur si client connecté.
  */
 (function () {
     'use strict';
 
     var STORAGE_KEY = 'photocom_cart_v1';
     var cart = null;
+    var syncTimer = null;
+    var syncing = false;
 
     function config() {
         return window.PHOTOCOM || {};
+    }
+
+    function isLoggedIn() {
+        return !!config().customerLoggedIn;
     }
 
     function load() {
@@ -32,11 +38,16 @@
             && Number(item.qty) > 0;
     }
 
-    function save() {
+    function save(options) {
+        options = options || {};
         localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
         document.dispatchEvent(new CustomEvent('photocom:cart-changed', { detail: { items: cart.slice() } }));
         updateBadge();
         renderCartPage();
+        renderAccountCart();
+        if (!options.skipSync) {
+            scheduleSync('replace');
+        }
     }
 
     function getItems() {
@@ -132,6 +143,75 @@
             el.classList.toggle('has-items', n > 0);
             el.setAttribute('aria-label', n > 0 ? 'Panier (' + n + ' article' + (n > 1 ? 's' : '') + ')' : 'Panier');
         });
+    }
+
+    function scheduleSync(mode) {
+        if (!isLoggedIn()) return;
+        if (syncTimer) clearTimeout(syncTimer);
+        syncTimer = setTimeout(function () {
+            syncWithServer(mode || 'replace');
+        }, 350);
+    }
+
+    function syncWithServer(mode) {
+        if (!isLoggedIn() || syncing) return;
+        syncing = true;
+        if (!cart) load();
+
+        fetch('/api/cart', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ mode: mode || 'replace', items: cart }),
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (!data || !data.ok || !Array.isArray(data.items)) return;
+                cart = data.items.filter(isValidItem);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
+                updateBadge();
+                renderCartPage();
+                renderAccountCart();
+            })
+            .catch(function () { /* silencieux */ })
+            .finally(function () { syncing = false; });
+    }
+
+    function pullAndMerge() {
+        if (!isLoggedIn()) return;
+        if (!cart) load();
+
+        fetch('/api/cart', {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' },
+        })
+            .then(function (res) {
+                if (res.status === 401) return null;
+                return res.json();
+            })
+            .then(function (data) {
+                if (!data || !data.ok) return;
+                var remote = Array.isArray(data.items) ? data.items.filter(isValidItem) : [];
+                // Merge local + remote then push
+                var map = {};
+                remote.concat(cart).forEach(function (item) {
+                    if (!isValidItem(item)) return;
+                    var id = Number(item.id);
+                    if (!map[id] || Number(item.qty) > Number(map[id].qty)) {
+                        map[id] = item;
+                    } else if (map[id] && Number(item.qty) === Number(map[id].qty)) {
+                        map[id] = Object.assign({}, map[id], item);
+                    }
+                });
+                cart = Object.keys(map).map(function (k) { return map[k]; });
+                save({ skipSync: true });
+                syncWithServer('replace');
+            })
+            .catch(function () { /* silencieux */ });
     }
 
     function productFromButton(btn) {
@@ -257,6 +337,53 @@
         }
     }
 
+    function renderAccountCart() {
+        var root = document.querySelector('[data-account-cart]');
+        if (!root) return;
+
+        var items = getItems();
+        var empty = root.querySelector('[data-account-cart-empty]');
+        var list = root.querySelector('[data-account-cart-list]');
+        var totalEl = root.querySelector('[data-account-cart-total]');
+        var countEl = root.querySelector('[data-account-cart-count]');
+
+        if (countEl) {
+            countEl.textContent = count() + ' article' + (count() > 1 ? 's' : '');
+        }
+        if (totalEl) {
+            totalEl.textContent = formatPrice(total());
+        }
+
+        if (!items.length) {
+            if (empty) empty.hidden = false;
+            if (list) {
+                list.hidden = true;
+                list.innerHTML = '';
+            }
+            return;
+        }
+
+        if (empty) empty.hidden = true;
+        if (list) {
+            list.hidden = false;
+            list.innerHTML = items.slice(0, 5).map(function (item) {
+                var href = item.slug ? '/produit/' + encodeURIComponent(item.slug) : '/panier';
+                var img = item.image
+                    ? '<img src="' + escapeHtml(item.image) + '" alt="">'
+                    : '<span class="product-placeholder">PC</span>';
+                return (
+                    '<a class="account-cart-line" href="' + escapeHtml(href) + '">'
+                    + '<span class="account-cart-media">' + img + '</span>'
+                    + '<span class="account-cart-copy">'
+                    + '<strong>' + escapeHtml(item.name) + '</strong>'
+                    + '<span>× ' + Number(item.qty) + ' · ' + escapeHtml(formatPrice(Number(item.price) * Number(item.qty))) + '</span>'
+                    + '</span>'
+                    + '</a>'
+                );
+            }).join('');
+        }
+    }
+
     function bindUi() {
         document.addEventListener('click', function (e) {
             var addBtn = e.target.closest('[data-cart-add]');
@@ -313,6 +440,7 @@
         total: total,
         formatPrice: formatPrice,
         whatsappUrl: whatsappUrl,
+        sync: function () { pullAndMerge(); },
     };
 
     load();
@@ -320,11 +448,15 @@
         document.addEventListener('DOMContentLoaded', function () {
             updateBadge();
             renderCartPage();
+            renderAccountCart();
             bindUi();
+            pullAndMerge();
         });
     } else {
         updateBadge();
         renderCartPage();
+        renderAccountCart();
         bindUi();
+        pullAndMerge();
     }
 })();

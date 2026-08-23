@@ -43,7 +43,8 @@ foreach ($secondaryImages as $img) {
 $isOut = !$notFound && (!empty($product['is_out_of_stock']) || ($product['stock_status'] ?? '') === 'outofstock');
 $isComing = !$notFound && !empty($product['is_coming_soon']);
 $activeNav = 'catalogue';
-$canOrder = !$notFound && !$isOut && empty($product['hide_add_to_cart']);
+$canAddToCart = !$notFound && !$isOut && !$isComing && empty($product['hide_add_to_cart']);
+$canWhatsApp = !$notFound && !$isOut;
 
 $productExcerpt = !$notFound
     ? Helpers::productExcerpt($product['short_description'] ?? '', 320)
@@ -75,8 +76,7 @@ if ($productDescriptionHtml === '' && !$notFound) {
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>
-    <link rel="stylesheet" href="/assets/css/public.css">
-    <link rel="stylesheet" href="/assets/css/chat.css">
+    <?php require __DIR__ . '/includes/site-assets.php'; ?>
 </head>
 <body class="page-product">
     <?php require __DIR__ . '/includes/site-header.php'; ?>
@@ -108,7 +108,7 @@ if ($productDescriptionHtml === '' && !$notFound) {
 
                         <div class="product-studio-grid" data-product-gallery>
                             <div class="product-studio-media">
-                                <figure class="product-studio-stage">
+                                <figure class="product-studio-stage<?= $isComing ? ' is-coming-soon' : '' ?><?= $isOut ? ' is-out-of-stock' : '' ?>">
                                     <?php if ($galleryImages !== []): ?>
                                         <img
                                             src="<?= Helpers::e($galleryImages[0]) ?>"
@@ -118,8 +118,13 @@ if ($productDescriptionHtml === '' && !$notFound) {
                                     <?php else: ?>
                                         <span class="product-placeholder product-detail-placeholder">PC</span>
                                     <?php endif; ?>
+                                    <?php if ($isComing): ?>
+                                        <span class="product-badge-soon">Bientôt disponible</span>
+                                    <?php elseif ($isOut): ?>
+                                        <span class="product-badge-out">En rupture</span>
+                                    <?php endif; ?>
                                     <?php if ($pricing['on_sale'] && $pricing['discount_percent'] !== null): ?>
-                                        <span class="product-badge-discount">−<?= (int) $pricing['discount_percent'] ?>%</span>
+                                        <span class="product-badge-discount<?= ($isComing || $isOut) ? ' is-with-status' : '' ?>">−<?= (int) $pricing['discount_percent'] ?>%</span>
                                     <?php endif; ?>
                                 </figure>
 
@@ -177,10 +182,10 @@ if ($productDescriptionHtml === '' && !$notFound) {
                                 <?php endif; ?>
 
                                 <div class="product-studio-actions">
-                                    <?php if ($canOrder): ?>
+                                    <?php if ($canAddToCart): ?>
                                         <button
                                             type="button"
-                                            class="btn btn-cart-add"
+                                            class="btn btn-cart-add btn-studio-cart"
                                             data-cart-add
                                             data-id="<?= (int) $product['id'] ?>"
                                             data-slug="<?= Helpers::e((string) ($product['slug'] ?? '')) ?>"
@@ -192,8 +197,13 @@ if ($productDescriptionHtml === '' && !$notFound) {
                                             title="Ajouter au panier"
                                         >
                                             <?php $iconSize = 18; require __DIR__ . '/includes/cart-add-icon.php'; ?>
+                                            <span class="btn-studio-cart-label">Ajouter au panier</span>
                                         </button>
-                                        <a href="<?= Helpers::e($waUrl) ?>" class="btn btn-primary btn-studio-order" target="_blank" rel="noopener">Commander</a>
+                                    <?php endif; ?>
+                                    <?php if ($canWhatsApp): ?>
+                                        <a href="<?= Helpers::e($waUrl) ?>" class="btn btn-primary btn-studio-order" target="_blank" rel="noopener">
+                                            <?= $isComing ? 'Me prévenir' : 'Commander' ?>
+                                        </a>
                                     <?php endif; ?>
                                 </div>
 
@@ -248,7 +258,7 @@ if ($productDescriptionHtml === '' && !$notFound) {
     <?php require __DIR__ . '/includes/site-footer.php'; ?>
     <?php require __DIR__ . '/includes/site-chat.php'; ?>
     <?php require __DIR__ . '/includes/site-cookies.php'; ?>
-    <script src="/assets/js/chat.js"></script>
+    <?php require __DIR__ . '/includes/site-end-scripts.php'; ?>
     <script>
     (function () {
         var root = document.querySelector('[data-product-gallery]');

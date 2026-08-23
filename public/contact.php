@@ -23,8 +23,7 @@ $waBase = 'https://wa.me/' . $waDigits;
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>
-    <link rel="stylesheet" href="/assets/css/public.css">
-    <link rel="stylesheet" href="/assets/css/chat.css">
+    <?php require __DIR__ . '/includes/site-assets.php'; ?>
 </head>
 <body class="page-contact page-editorial">
     <?php require __DIR__ . '/includes/site-header.php'; ?>
@@ -153,8 +152,7 @@ $waBase = 'https://wa.me/' . $waDigits;
     <?php require __DIR__ . '/includes/site-footer.php'; ?>
     <?php require __DIR__ . '/includes/site-chat.php'; ?>
     <?php require __DIR__ . '/includes/site-cookies.php'; ?>
-    <script src="/assets/js/mega-menu.js"></script>
-    <script src="/assets/js/chat.js"></script>
+    <?php require __DIR__ . '/includes/site-end-scripts.php'; ?>
     <script>
     (function () {
         var form = document.getElementById('contact-wa-form');

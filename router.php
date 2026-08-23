@@ -20,8 +20,18 @@ if (str_starts_with($uri, '/assets/')) {
             'webp' => 'image/webp',
             'gif' => 'image/gif',
             'svg' => 'image/svg+xml',
+            'woff' => 'font/woff',
+            'woff2' => 'font/woff2',
         ];
+        $mtime = filemtime($file) ?: time();
+        $etag = '"' . dechex($mtime) . '-' . dechex((int) filesize($file)) . '"';
         header('Content-Type: ' . ($types[$ext] ?? 'application/octet-stream'));
+        header('Cache-Control: public, max-age=604800');
+        header('ETag: ' . $etag);
+        if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim((string) $_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
+            http_response_code(304);
+            return true;
+        }
         readfile($file);
         return true;
     }
@@ -42,7 +52,15 @@ if (preg_match('#^/uploads/(products|categories|home|brands|articles)/#', $uri))
             'webm' => 'video/webm',
             'mov' => 'video/quicktime',
         ];
+        $mtime = filemtime($file) ?: time();
+        $etag = '"' . dechex($mtime) . '-' . dechex((int) filesize($file)) . '"';
         header('Content-Type: ' . ($types[$ext] ?? 'application/octet-stream'));
+        header('Cache-Control: public, max-age=2592000');
+        header('ETag: ' . $etag);
+        if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim((string) $_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
+            http_response_code(304);
+            return true;
+        }
         readfile($file);
         return true;
     }
@@ -98,6 +116,22 @@ if (preg_match('#^/produit/([a-z0-9-]+)$#', $uri, $matches)) {
     return true;
 }
 
+// Compte client
+if ($uri === '/compte' || $uri === '/compte.php') {
+    require $root . '/public/compte.php';
+    return true;
+}
+
+if ($uri === '/mon-compte' || $uri === '/mon-compte.php') {
+    require $root . '/public/mon-compte.php';
+    return true;
+}
+
+if ($uri === '/compte/deconnexion' || $uri === '/compte-logout.php') {
+    require $root . '/public/compte-logout.php';
+    return true;
+}
+
 // Panier
 if ($uri === '/panier' || $uri === '/panier.php') {
     require $root . '/public/panier.php';
@@ -107,6 +141,18 @@ if ($uri === '/panier' || $uri === '/panier.php') {
 // Chat API
 if ($uri === '/chat-api.php' || $uri === '/api/chat') {
     require $root . '/public/chat-api.php';
+    return true;
+}
+
+// Autosuggest recherche
+if ($uri === '/api/search-suggest' || $uri === '/api/search-suggest.php') {
+    require $root . '/public/api/search-suggest.php';
+    return true;
+}
+
+// Panier client connecté
+if ($uri === '/api/cart' || $uri === '/api/cart.php') {
+    require $root . '/public/api/cart.php';
     return true;
 }
 

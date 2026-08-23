@@ -200,7 +200,18 @@ class ProductRepository
         $db = Database::getInstance();
 
         $brandStmt = $db->prepare(
-            "SELECT DISTINCT p.brand FROM products p {$whereSql} AND p.brand IS NOT NULL AND p.brand != '' ORDER BY p.brand ASC"
+            "SELECT DISTINCT p.brand
+             FROM products p
+             {$whereSql}
+               AND p.brand IS NOT NULL
+               AND trim(p.brand) != ''
+               AND COALESCE((
+                   SELECT b.show_in_filter
+                   FROM brands b
+                   WHERE lower(b.name) = lower(p.brand)
+                   LIMIT 1
+               ), 1) = 1
+             ORDER BY p.brand ASC"
         );
         $brandStmt->execute($params);
         $brands = array_column($brandStmt->fetchAll(), 'brand');
@@ -217,6 +228,55 @@ class ProductRepository
             'price_max' => (float) ($range['price_max'] ?? 0),
             'total' => (int) ($range['total'] ?? 0),
         ];
+    }
+
+    /**
+     * Suggestions de recherche (autosuggest header).
+     *
+     * @return list<array{id:int,name:string,slug:string,brand:string,image:string,price:float,url:string}>
+     */
+    public static function suggest(string $query, int $limit = 8): array
+    {
+        $query = trim($query);
+        if (mb_strlen($query) < 2) {
+            return [];
+        }
+
+        $limit = max(1, min(12, $limit));
+        $stmt = Database::getInstance()->prepare(
+            "SELECT p.id, p.name, p.slug, p.brand, p.image, p.price, p.sale_price, p.on_sale
+             FROM products p
+             WHERE p.is_active = 1
+               AND (p.catalog_visibility IS NULL OR p.catalog_visibility = '' OR p.catalog_visibility IN ('visible', 'catalog', 'search'))
+               AND (p.name LIKE :q1 OR p.sku LIKE :q2 OR IFNULL(p.brand, '') LIKE :q3)
+             ORDER BY
+               CASE WHEN lower(p.name) LIKE lower(:q_start) THEN 0 ELSE 1 END,
+               p.name ASC
+             LIMIT {$limit}"
+        );
+        $like = '%' . $query . '%';
+        $stmt->execute([
+            'q1' => $like,
+            'q2' => $like,
+            'q3' => $like,
+            'q_start' => $query . '%',
+        ]);
+
+        $out = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $pricing = Helpers::productPricing($row);
+            $out[] = [
+                'id' => (int) $row['id'],
+                'name' => (string) $row['name'],
+                'slug' => (string) ($row['slug'] ?? ''),
+                'brand' => (string) ($row['brand'] ?? ''),
+                'image' => (string) ($row['image'] ?? ''),
+                'price' => (float) $pricing['current'],
+                'url' => Helpers::productUrl($row),
+            ];
+        }
+
+        return $out;
     }
 
     public static function find(int $id): ?array

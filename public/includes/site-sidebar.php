@@ -8,6 +8,10 @@ declare(strict_types=1);
 /** @var string $promoText */
 $searchQuery = $searchQuery ?? '';
 $activeCatSlug = $activeCatSlug ?? trim($_GET['cat'] ?? '');
+CustomerAuth::startSession();
+$customerLoggedIn = CustomerAuth::check();
+$compteHref = $customerLoggedIn ? '/mon-compte' : '/compte';
+$compteLabel = $customerLoggedIn ? 'Mon compte' : 'Compte';
 ?>
 <button type="button" class="sidebar-drawer-toggle" data-sidebar-drawer aria-label="Ouvrir le menu" aria-expanded="true" title="Menu">
     <svg class="icon-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
@@ -102,7 +106,7 @@ $activeCatSlug = $activeCatSlug ?? trim($_GET['cat'] ?? '');
                     <a href="#" lang="en">EN</a>
                 </div>
                 <a href="/catalogue.php" class="sidebar-action-link">Panier</a>
-                <a href="/admin/login.php" class="sidebar-action-link">Compte</a>
+                <a href="<?= Helpers::e($compteHref) ?>" class="sidebar-action-link"><?= Helpers::e($compteLabel) ?></a>
             </div>
             <?php require __DIR__ . '/social-icons.php'; ?>
         </div>

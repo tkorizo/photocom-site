@@ -14,7 +14,8 @@ class LegalPagesContent
         $address = $config['address'] ?? 'Casablanca, Maroc';
         $phone = $config['phone'] ?? '';
         $email = $config['email'] ?? 'contact@photocom.ma';
-        $url = rtrim((string) ($config['url'] ?? 'https://photocom.ma'), '/');
+        // Domaine affiché dans les pages légales (indépendant de APP_URL / DNS).
+        $url = 'https://photocom.ma';
 
         return [
             'mentions-legales' => [

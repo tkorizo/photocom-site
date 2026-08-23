@@ -72,8 +72,14 @@ $waDigitsFooter = preg_replace('/\D+/', '', (string) ($whatsapp ?? '')) ?: (stri
 ?>
 <script>
 window.PHOTOCOM = Object.assign({}, window.PHOTOCOM || {}, {
-    whatsapp: <?= json_encode($waDigitsFooter, JSON_UNESCAPED_UNICODE) ?>
+    whatsapp: <?= json_encode($waDigitsFooter, JSON_UNESCAPED_UNICODE) ?>,
+    customerLoggedIn: <?= !empty($customerLoggedIn) ? 'true' : 'false' ?>
 });
 </script>
-<script src="/assets/js/cart.js" defer></script>
-<script src="/assets/js/mega-menu.js" defer></script>
+<script src="/assets/js/cart.js?v=<?= is_file(__DIR__ . '/../assets/js/cart.js') ? filemtime(__DIR__ . '/../assets/js/cart.js') : time() ?>" defer></script>
+<script src="/assets/js/mega-menu.js?v=<?= is_file(__DIR__ . '/../assets/js/mega-menu.js') ? filemtime(__DIR__ . '/../assets/js/mega-menu.js') : time() ?>" defer></script>
+<script src="/assets/js/search-suggest.js?v=<?= is_file(__DIR__ . '/../assets/js/search-suggest.js') ? filemtime(__DIR__ . '/../assets/js/search-suggest.js') : time() ?>" defer></script>
+<?php if (!empty($loadFiltersDrawer)): ?>
+<script src="/assets/js/filters-drawer.js?v=<?= is_file(__DIR__ . '/../assets/js/filters-drawer.js') ? filemtime(__DIR__ . '/../assets/js/filters-drawer.js') : time() ?>" defer></script>
+<?php endif; ?>
+

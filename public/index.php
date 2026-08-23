@@ -77,8 +77,21 @@ if ($heroMediaType === 'none') {
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>
-    <link rel="stylesheet" href="/assets/css/public.css">
-    <link rel="stylesheet" href="/assets/css/chat.css">
+    <?php
+    $heroPosterPreload = '';
+    if (($heroMediaType ?? '') === 'video') {
+        $heroPosterPreload = trim((string) ($heroVideoPoster ?? ''));
+        if ($heroPosterPreload === '') {
+            $heroPosterPreload = trim((string) ($heroImageUrl ?? ''));
+        }
+    } elseif (($heroMediaType ?? '') === 'image') {
+        $heroPosterPreload = trim((string) ($heroImageUrl ?? ''));
+    }
+    if ($heroPosterPreload !== ''):
+    ?>
+    <link rel="preload" as="image" href="<?= Helpers::e($heroPosterPreload) ?>" fetchpriority="high">
+    <?php endif; ?>
+    <?php require __DIR__ . '/includes/site-assets.php'; ?>
 </head>
 <body class="page-home">
     <a href="#main" class="skip-link">Aller au contenu principal</a>
@@ -94,9 +107,20 @@ if ($heroMediaType === 'none') {
         >
             <div class="hero-video-wrap">
                 <?php if ($heroMediaType === 'video' && $heroVideoUrl): ?>
-                    <video class="hero-video-el" autoplay muted loop playsinline poster="<?= Helpers::e($heroVideoPoster) ?>">
-                        <source src="<?= Helpers::e($heroVideoUrl) ?>" type="video/mp4">
-                    </video>
+                    <?php
+                    $heroPosterAttr = trim((string) $heroVideoPoster) !== ''
+                        ? $heroVideoPoster
+                        : (trim((string) $heroImageUrl) !== '' ? $heroImageUrl : '');
+                    ?>
+                    <video
+                        class="hero-video-el"
+                        muted
+                        loop
+                        playsinline
+                        preload="none"
+                        poster="<?= Helpers::e($heroPosterAttr) ?>"
+                        data-hero-src="<?= Helpers::e($heroVideoUrl) ?>"
+                    ></video>
                     <div class="hero-video-overlay"></div>
                     <div class="hero-video-caption container">
                         <span class="hero-kicker"><?= Helpers::e($home['hero_kicker']) ?></span>
@@ -199,7 +223,15 @@ if ($heroMediaType === 'none') {
                     <?php foreach ($brandList as $brand): ?>
                         <a href="/catalogue.php?brand=<?= urlencode($brand['name']) ?>" class="brand-block<?= !empty($brand['logo']) ? ' brand-block--logo' : '' ?>" title="<?= Helpers::e($brand['name']) ?>">
                             <?php if (!empty($brand['logo'])): ?>
-                                <img src="<?= Helpers::e($brand['logo']) ?>" alt="<?= Helpers::e($brand['name']) ?>" class="brand-logo-img" loading="lazy">
+                                <img
+                                    src="<?= Helpers::e($brand['logo']) ?>"
+                                    alt="<?= Helpers::e($brand['name']) ?>"
+                                    class="brand-logo-img"
+                                    width="280"
+                                    height="120"
+                                    loading="lazy"
+                                    decoding="async"
+                                >
                             <?php else: ?>
                                 <h3><?= Helpers::e($brand['name']) ?></h3>
                             <?php endif; ?>
@@ -272,7 +304,33 @@ if ($heroMediaType === 'none') {
     <?php require __DIR__ . '/includes/site-footer.php'; ?>
     <?php require __DIR__ . '/includes/site-chat.php'; ?>
     <?php require __DIR__ . '/includes/site-cookies.php'; ?>
-    <script src="/assets/js/mega-menu.js"></script>
-    <script src="/assets/js/chat.js"></script>
+    <?php if ($heroMediaType === 'video' && $heroVideoUrl): ?>
+    <script>
+    (function () {
+        var video = document.querySelector('video.hero-video-el[data-hero-src]');
+        if (!video) return;
+        var src = video.getAttribute('data-hero-src');
+        if (!src) return;
+        var loadHero = function () {
+            if (video.dataset.loaded === '1') return;
+            video.dataset.loaded = '1';
+            var source = document.createElement('source');
+            source.src = src;
+            source.type = 'video/mp4';
+            video.appendChild(source);
+            video.load();
+            var play = function () { video.play().catch(function () {}); };
+            if (video.readyState >= 2) play();
+            else video.addEventListener('loadeddata', play, { once: true });
+        };
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(loadHero, { timeout: 1800 });
+        } else {
+            window.addEventListener('load', function () { setTimeout(loadHero, 200); });
+        }
+    })();
+    </script>
+    <?php endif; ?>
+    <?php require __DIR__ . '/includes/site-end-scripts.php'; ?>
 </body>
 </html>

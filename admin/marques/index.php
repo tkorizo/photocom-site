@@ -32,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && Auth::verifyCsrf($_POST['csrf_token
                     'slug' => trim((string) ($_POST['slug'] ?? $brand['slug'])),
                     'logo' => $logo,
                     'is_active' => isset($_POST['is_active']),
+                    'show_in_filter' => isset($_POST['show_in_filter']),
                     'sort_order' => (int) ($_POST['sort_order'] ?? 0),
                 ]);
                 AuditLog::record('brand.update', 'brand', $id, ['name' => trim((string) ($_POST['name'] ?? $brand['name']))]);
@@ -81,7 +82,7 @@ require dirname(__DIR__) . '/includes/header.php';
     <div class="panel-header brands-toolbar-header">
         <div>
             <h2>Marques</h2>
-            <p class="text-muted">Gérez les marques du catalogue et leurs logos.</p>
+            <p class="text-muted">Gérez les marques, logos, et leur affichage dans les filtres catalogue.</p>
         </div>
         <form method="get" class="search-form">
             <input type="search" name="q" value="<?= Helpers::e($search) ?>" placeholder="Rechercher une marque…">
@@ -125,6 +126,7 @@ require dirname(__DIR__) . '/includes/header.php';
                     <col class="col-name">
                     <col class="col-slug">
                     <col class="col-active">
+                    <col class="col-filter">
                     <col class="col-order">
                     <col class="col-file">
                     <col class="col-actions">
@@ -135,6 +137,7 @@ require dirname(__DIR__) . '/includes/header.php';
                         <th>Nom</th>
                         <th>Slug</th>
                         <th>Actif</th>
+                        <th>Filtre</th>
                         <th>Ordre</th>
                         <th>Nouveau logo</th>
                         <th>Actions</th>
@@ -171,7 +174,12 @@ require dirname(__DIR__) . '/includes/header.php';
                             </td>
                             <td class="brands-td-center">
                                 <label class="checkbox-label compact">
-                                    <input form="brand-form-<?= $bid ?>" type="checkbox" name="is_active" <?= (int) $brand['is_active'] === 1 ? 'checked' : '' ?>> Actif
+                                    <input form="brand-form-<?= $bid ?>" type="checkbox" name="is_active" <?= (int) ($brand['is_active'] ?? 1) === 1 ? 'checked' : '' ?>> Actif
+                                </label>
+                            </td>
+                            <td class="brands-td-center">
+                                <label class="checkbox-label compact" title="Afficher cette marque dans les filtres du catalogue">
+                                    <input form="brand-form-<?= $bid ?>" type="checkbox" name="show_in_filter" <?= (int) ($brand['show_in_filter'] ?? 1) === 1 ? 'checked' : '' ?>> Oui
                                 </label>
                             </td>
                             <td>

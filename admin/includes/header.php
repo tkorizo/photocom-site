@@ -99,6 +99,9 @@ require __DIR__ . '/icons.php';
                     <a href="/admin/users/index.php" class="nav-item <?= $currentPage === 'users' ? 'active' : '' ?>">
                         <span class="nav-icon"><?= adminIcon('user') ?></span> Utilisateurs
                     </a>
+                    <a href="/admin/clients/index.php" class="nav-item <?= $currentPage === 'customers' ? 'active' : '' ?>">
+                        <span class="nav-icon"><?= adminIcon('user') ?></span> Comptes clients
+                    </a>
                     <?php if ($isSuperAdmin): ?>
                         <a href="/admin/settings/audit-log.php" class="nav-item <?= $currentPage === 'audit' ? 'active' : '' ?>">
                             <span class="nav-icon"><?= adminIcon('log') ?></span> Journal d'activité

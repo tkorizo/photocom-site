@@ -19,17 +19,72 @@ $sortOptions = [
     'price_desc' => 'Prix décroissant',
     'newest' => 'Nouveautés',
 ];
+
+$activeFilterCount = 0;
+if ($searchQuery !== '') {
+    $activeFilterCount++;
+}
+if ($brandFilter !== '') {
+    $activeFilterCount++;
+}
+if ($minPrice !== '') {
+    $activeFilterCount++;
+}
+if ($maxPrice !== '') {
+    $activeFilterCount++;
+}
+if ($onSaleOnly) {
+    $activeFilterCount++;
+}
+if ($inStockOnly) {
+    $activeFilterCount++;
+}
+if ($sort !== '' && $sort !== 'newest') {
+    $activeFilterCount++;
+}
 ?>
-<aside class="catalogue-filters" aria-label="Filtres produits">
+<?php if (($filtersPartial ?? 'all') !== 'drawer'): ?>
+<div class="filters-toolbar" data-filters-toolbar>
+    <button type="button" class="filters-open-btn" data-filters-open aria-controls="catalogue-filters-drawer" aria-expanded="false">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M4 6h16M7 12h10M10 18h4"/>
+        </svg>
+        <span>Filtres</span>
+        <?php if ($activeFilterCount > 0): ?>
+            <span class="filters-open-badge"><?= (int) $activeFilterCount ?></span>
+        <?php endif; ?>
+    </button>
+</div>
+<?php endif; ?>
+
+<?php if (($filtersPartial ?? 'all') === 'toolbar') {
+    return;
+} ?>
+
+<div class="filters-drawer-backdrop" data-filters-backdrop hidden aria-hidden="true"></div>
+
+<aside
+    class="catalogue-filters"
+    id="catalogue-filters-drawer"
+    data-filters-drawer
+    aria-label="Filtres produits"
+>
     <div class="filters-panel">
         <header class="filters-panel-head">
-            <h2>Filtres</h2>
-            <?php if ($category): ?>
-                <p class="filters-panel-context"><?= Helpers::e($category['name']) ?></p>
-            <?php endif; ?>
+            <div class="filters-panel-head-text">
+                <h2>Filtres</h2>
+                <?php if ($category): ?>
+                    <p class="filters-panel-context"><?= Helpers::e($category['name']) ?></p>
+                <?php endif; ?>
+            </div>
+            <button type="button" class="filters-close-btn" data-filters-close aria-label="Fermer les filtres">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
         </header>
 
-        <form method="get" class="filters-form">
+        <form method="get" class="filters-form" data-filters-form>
             <?php if ($catSlug): ?>
                 <input type="hidden" name="cat" value="<?= Helpers::e($catSlug) ?>">
             <?php endif; ?>

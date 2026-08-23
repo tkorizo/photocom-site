@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 /**
  * Scripts Google Analytics 4 + Google Tag Manager (head).
+ * Chargement différé pour réduire le TBT mobile.
  * Variables : $site (optionnel, sinon chargé).
  */
 
@@ -24,23 +25,40 @@ if (!$ga4Ok && !$gtmOk) {
     return;
 }
 ?>
-<?php if ($gtmOk): ?>
-<!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','<?= Helpers::e($gtm) ?>');</script>
-<!-- End Google Tag Manager -->
-<?php endif; ?>
-<?php if ($ga4Ok): ?>
-<!-- Google Analytics 4 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=<?= Helpers::e($ga4) ?>"></script>
 <script>
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', '<?= Helpers::e($ga4) ?>');
+(function () {
+    var gtmId = <?= $gtmOk ? json_encode($gtm, JSON_UNESCAPED_UNICODE) : 'null' ?>;
+    var ga4Id = <?= $ga4Ok ? json_encode($ga4, JSON_UNESCAPED_UNICODE) : 'null' ?>;
+
+    function bootAnalytics() {
+        if (gtmId) {
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+            var f = document.getElementsByTagName('script')[0];
+            var j = document.createElement('script');
+            j.async = true;
+            j.src = 'https://www.googletagmanager.com/gtm.js?id=' + gtmId;
+            f.parentNode.insertBefore(j, f);
+        }
+        if (ga4Id) {
+            var s = document.createElement('script');
+            s.async = true;
+            s.src = 'https://www.googletagmanager.com/gtag/js?id=' + ga4Id;
+            document.head.appendChild(s);
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){ dataLayer.push(arguments); }
+            window.gtag = gtag;
+            gtag('js', new Date());
+            gtag('config', ga4Id);
+        }
+    }
+
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(bootAnalytics, { timeout: 3500 });
+    } else {
+        window.addEventListener('load', function () {
+            setTimeout(bootAnalytics, 1200);
+        });
+    }
+})();
 </script>
-<!-- End Google Analytics 4 -->
-<?php endif; ?>

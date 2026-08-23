@@ -28,8 +28,7 @@ $activeNav = 'conseils';
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>
-    <link rel="stylesheet" href="/assets/css/public.css">
-    <link rel="stylesheet" href="/assets/css/chat.css">
+    <?php require __DIR__ . '/includes/site-assets.php'; ?>
 </head>
 <body class="page-blog page-editorial">
     <?php require __DIR__ . '/includes/site-header.php'; ?>
@@ -121,7 +120,6 @@ $activeNav = 'conseils';
     <?php require __DIR__ . '/includes/site-footer.php'; ?>
     <?php require __DIR__ . '/includes/site-chat.php'; ?>
     <?php require __DIR__ . '/includes/site-cookies.php'; ?>
-    <script src="/assets/js/mega-menu.js"></script>
-    <script src="/assets/js/chat.js"></script>
+    <?php require __DIR__ . '/includes/site-end-scripts.php'; ?>
 </body>
 </html>

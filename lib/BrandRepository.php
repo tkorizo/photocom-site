@@ -76,6 +76,7 @@ class BrandRepository
                 slug = :slug,
                 logo = :logo,
                 is_active = :is_active,
+                show_in_filter = :show_in_filter,
                 sort_order = :sort_order,
                 updated_at = datetime(\'now\')
              WHERE id = :id'
@@ -87,8 +88,22 @@ class BrandRepository
             'slug' => trim((string) ($data['slug'] ?? '')) ?: Helpers::uniqueSlug('brands', (string) ($data['name'] ?? 'marque'), $id),
             'logo' => $data['logo'] ?? null,
             'is_active' => !empty($data['is_active']) ? 1 : 0,
+            'show_in_filter' => array_key_exists('show_in_filter', $data)
+                ? (!empty($data['show_in_filter']) ? 1 : 0)
+                : 1,
             'sort_order' => (int) ($data['sort_order'] ?? 0),
         ]);
+    }
+
+    /** @return list<string> Noms de marques affichables dans les filtres catalogue. */
+    public static function namesForFilter(): array
+    {
+        return array_map(
+            static fn (array $b): string => (string) $b['name'],
+            Database::getInstance()
+                ->query('SELECT name FROM brands WHERE is_active = 1 AND show_in_filter = 1 ORDER BY name ASC')
+                ->fetchAll()
+        );
     }
 
     public static function updateLogo(int $id, ?string $logo): void
@@ -97,6 +112,14 @@ class BrandRepository
             'UPDATE brands SET logo = :logo, updated_at = datetime(\'now\') WHERE id = :id'
         );
         $stmt->execute(['id' => $id, 'logo' => $logo]);
+    }
+
+    public static function setShowInFilter(int $id, bool $show): void
+    {
+        $stmt = Database::getInstance()->prepare(
+            'UPDATE brands SET show_in_filter = :show, updated_at = datetime(\'now\') WHERE id = :id'
+        );
+        $stmt->execute(['id' => $id, 'show' => $show ? 1 : 0]);
     }
 
     public static function delete(int $id): void

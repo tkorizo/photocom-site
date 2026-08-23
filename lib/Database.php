@@ -67,6 +67,7 @@ class Database
             updated_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
         )');
         $db->exec('CREATE INDEX IF NOT EXISTS idx_brands_name ON brands(name)');
+        self::addColumnIfMissing('brands', 'show_in_filter', 'INTEGER NOT NULL DEFAULT 1');
 
         self::addColumnIfMissing('products', 'stock_quantity', 'INTEGER');
         self::addColumnIfMissing('products', 'manage_stock', 'INTEGER DEFAULT 0');
@@ -94,6 +95,26 @@ class Database
 
         self::addColumnIfMissing('users', 'role', "TEXT NOT NULL DEFAULT 'admin'");
         self::migrateUserRoles();
+
+        $db->exec('CREATE TABLE IF NOT EXISTS customers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            name TEXT NOT NULL,
+            phone TEXT,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL DEFAULT (datetime(\'now\')),
+            updated_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
+        )');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email)');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_customers_created ON customers(created_at)');
+
+        $db->exec('CREATE TABLE IF NOT EXISTS customer_carts (
+            customer_id INTEGER PRIMARY KEY,
+            items_json TEXT NOT NULL DEFAULT \'[]\',
+            updated_at TEXT NOT NULL DEFAULT (datetime(\'now\')),
+            FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+        )');
 
         self::addColumnIfMissing('articles', 'meta_title', 'TEXT');
         self::addColumnIfMissing('articles', 'meta_description', 'TEXT');

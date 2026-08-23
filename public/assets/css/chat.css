@@ -3,7 +3,7 @@
     position: fixed;
     right: 1.25rem;
     bottom: 1.25rem;
-    z-index: 600;
+    z-index: var(--z-chat, 600);
 }
 
 .chat-bar[hidden],
@@ -249,10 +249,16 @@
     .chat-widget {
         right: 0.85rem;
         bottom: 0.85rem;
+        max-width: calc(100vw - 1.7rem);
     }
 
     .chat-bar {
         min-width: 0;
+        max-width: 100%;
         padding-right: 0.85rem;
+    }
+
+    .chat-panel {
+        max-width: min(380px, calc(100vw - 1.7rem));
     }
 }
