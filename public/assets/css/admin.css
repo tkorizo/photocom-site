@@ -644,7 +644,8 @@ input.input-invalid,
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--bg);
-    overflow: hidden;
+    overflow: visible;
+    max-width: 100%;
 }
 
 .cat-picker-field {
@@ -705,6 +706,7 @@ input.input-invalid,
     border-radius: 8px;
     color: var(--text);
     font-size: 0.9rem;
+    box-sizing: border-box;
 }
 
 .cat-picker-search:focus {
@@ -713,9 +715,12 @@ input.input-invalid,
 }
 
 .cat-accordion {
-    max-height: 320px;
+    max-height: 360px;
+    overflow-x: auto;
     overflow-y: auto;
     padding: 0 0.5rem 0.5rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
 }
 
 .cat-accordion-item {
@@ -723,7 +728,8 @@ input.input-invalid,
     border-radius: 8px;
     margin-bottom: 0.4rem;
     background: var(--surface);
-    overflow: hidden;
+    overflow: visible;
+    min-width: max-content;
 }
 
 .cat-accordion-item[open] .cat-accordion-chevron { transform: rotate(90deg); }
@@ -736,6 +742,7 @@ input.input-invalid,
     cursor: pointer;
     list-style: none;
     user-select: none;
+    min-width: max-content;
 }
 
 .cat-accordion-header::-webkit-details-marker { display: none; }
@@ -745,24 +752,29 @@ input.input-invalid,
     font-size: 1rem;
     transition: transform 0.15s;
     width: 1rem;
+    flex-shrink: 0;
     text-align: center;
 }
 
 .cat-accordion-title {
-    flex: 1;
+    flex: 1 1 auto;
     font-weight: 600;
     font-size: 0.9rem;
+    white-space: nowrap;
 }
 
 .cat-accordion-count {
     font-size: 0.75rem;
     color: var(--muted);
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .cat-accordion-body {
     padding: 0.35rem 0.85rem 0.75rem;
     border-top: 1px solid var(--border);
     background: var(--bg);
+    min-width: max-content;
 }
 
 .cat-accordion-leaf {
@@ -771,18 +783,23 @@ input.input-invalid,
     margin-bottom: 0.4rem;
     background: var(--surface);
     padding: 0.15rem 0;
+    overflow: visible;
+    min-width: max-content;
 }
 
 .cat-option {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.65rem;
     padding: 0.5rem 0.65rem;
     border-radius: 6px;
     cursor: pointer;
     font-size: 0.88rem;
     color: var(--text);
     margin: 0;
+    min-width: max-content;
+    width: max-content;
+    max-width: none;
 }
 
 .cat-option:hover { background: var(--surface-2); }
@@ -794,11 +811,20 @@ input.input-invalid,
     padding-bottom: 0.6rem;
 }
 
+.cat-option span {
+    white-space: nowrap;
+}
+
 .cat-option input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    min-height: 18px;
+    margin: 0;
     accent-color: var(--primary);
+    flex: 0 0 18px;
     flex-shrink: 0;
+    align-self: center;
 }
 
 .cat-option[hidden] { display: none; }
