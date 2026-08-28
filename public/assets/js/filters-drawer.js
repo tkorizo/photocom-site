@@ -78,6 +78,9 @@
     closeBtns.forEach(function (btn) {
         btn.addEventListener('click', function (e) {
             e.preventDefault();
+            if (form && typeof form.reset === 'function') {
+                form.reset();
+            }
             closeDrawer();
         });
     });

@@ -28,6 +28,7 @@ require __DIR__ . '/icons.php';
     <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/admin.css">
     <script src="/assets/js/image-upload.js" defer></script>
+    <script src="/assets/js/search-suggest.js" defer></script>
 </head>
 <body class="admin-body<?= !empty($builderMode) ? ' admin-body-builder' : '' ?>">
     <div class="admin-layout">

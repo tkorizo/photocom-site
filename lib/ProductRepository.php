@@ -279,6 +279,54 @@ class ProductRepository
         return $out;
     }
 
+    /**
+     * Suggestions de recherche admin (tous les produits, lien édition).
+     *
+     * @return list<array{id:int,name:string,slug:string,brand:string,sku:string,image:string,price:float,url:string}>
+     */
+    public static function suggestAdmin(string $query, int $limit = 8): array
+    {
+        $query = trim($query);
+        if (mb_strlen($query) < 2) {
+            return [];
+        }
+
+        $limit = max(1, min(12, $limit));
+        $stmt = Database::getInstance()->prepare(
+            "SELECT p.id, p.name, p.slug, p.brand, p.sku, p.image, p.price, p.sale_price, p.on_sale
+             FROM products p
+             WHERE (p.name LIKE :q1 OR p.sku LIKE :q2 OR IFNULL(p.brand, '') LIKE :q3)
+             ORDER BY
+               CASE WHEN lower(p.name) LIKE lower(:q_start) THEN 0 ELSE 1 END,
+               p.name ASC
+             LIMIT {$limit}"
+        );
+        $like = '%' . $query . '%';
+        $stmt->execute([
+            'q1' => $like,
+            'q2' => $like,
+            'q3' => $like,
+            'q_start' => $query . '%',
+        ]);
+
+        $out = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $pricing = Helpers::productPricing($row);
+            $out[] = [
+                'id' => (int) $row['id'],
+                'name' => (string) $row['name'],
+                'slug' => (string) ($row['slug'] ?? ''),
+                'brand' => (string) ($row['brand'] ?? ''),
+                'sku' => (string) ($row['sku'] ?? ''),
+                'image' => (string) ($row['image'] ?? ''),
+                'price' => (float) $pricing['current'],
+                'url' => '/admin/produits/edit.php?id=' . (int) $row['id'],
+            ];
+        }
+
+        return $out;
+    }
+
     public static function find(int $id): ?array
     {
         $stmt = Database::getInstance()->prepare(

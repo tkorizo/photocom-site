@@ -1,5 +1,5 @@
 /**
- * Autosuggest recherche header (avec miniatures).
+ * Autosuggest recherche produits (header, filtres catalogue, admin).
  */
 (function () {
     'use strict';
@@ -24,11 +24,26 @@
         return n.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' MAD';
     }
 
+    function buildAllHref(wrap, q) {
+        var base = wrap.getAttribute('data-suggest-all-href') || '/catalogue.php';
+        var param = wrap.getAttribute('data-suggest-all-param') || 'q';
+        var catSlug = wrap.getAttribute('data-search-cat') || '';
+        var params = [param + '=' + encodeURIComponent(q)];
+        if (catSlug) {
+            params.push('cat=' + encodeURIComponent(catSlug));
+        }
+        var join = base.indexOf('?') === -1 ? '?' : '&';
+        return base + join + params.join('&');
+    }
+
     function bindWrap(wrap) {
         var input = wrap.querySelector('[data-search-input]');
         var results = wrap.querySelector('[data-search-results]');
         if (!input || !results) return;
 
+        var apiUrl = wrap.getAttribute('data-suggest-api') || '/api/search-suggest';
+        var linkMode = wrap.getAttribute('data-suggest-link') || 'follow';
+        var pickerKey = wrap.getAttribute('data-suggest-picker') || '';
         var timer = null;
         var controller = null;
 
@@ -36,6 +51,22 @@
             results.hidden = true;
             results.innerHTML = '';
             input.setAttribute('aria-expanded', 'false');
+        }
+
+        function selectPickerItem(item) {
+            input.value = item.name;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            if (!pickerKey) return;
+            var picker = document.querySelector('[data-product-picker="' + pickerKey + '"]');
+            if (!picker) return;
+            var checkbox = picker.querySelector('input[type="checkbox"][value="' + item.id + '"]');
+            if (!checkbox) return;
+            checkbox.checked = true;
+            var option = checkbox.closest('.he-product-option');
+            if (option) {
+                option.style.display = '';
+                option.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
         }
 
         function render(items, q) {
@@ -50,27 +81,48 @@
                 var img = item.image
                     ? '<img src="' + escapeHtml(item.image) + '" alt="" width="48" height="48" loading="lazy">'
                     : '<span class="header-search-suggest-ph">PC</span>';
+                var meta = item.brand ? escapeHtml(item.brand) : '';
+                if (item.sku) {
+                    meta += (meta ? ' · ' : '') + 'SKU ' + escapeHtml(item.sku);
+                }
                 return (
-                    '<a class="header-search-suggest-item" role="option" href="' + escapeHtml(item.url) + '">'
+                    '<a class="header-search-suggest-item" role="option" href="' + escapeHtml(item.url) + '" data-suggest-item data-item-id="' + escapeHtml(item.id) + '">'
                     + '<span class="header-search-suggest-media">' + img + '</span>'
                     + '<span class="header-search-suggest-copy">'
-                    + (item.brand ? '<span class="header-search-suggest-brand">' + escapeHtml(item.brand) + '</span>' : '')
+                    + (meta ? '<span class="header-search-suggest-brand">' + meta + '</span>' : '')
                     + '<strong>' + escapeHtml(item.name) + '</strong>'
                     + '<span class="header-search-suggest-price">' + escapeHtml(formatPrice(item.price)) + '</span>'
                     + '</span>'
                     + '</a>'
                 );
             }).join('')
-            + '<a class="header-search-suggest-all" href="/catalogue.php?q=' + encodeURIComponent(q) + '">Voir tous les résultats</a>';
+            + '<a class="header-search-suggest-all" href="' + escapeHtml(buildAllHref(wrap, q)) + '">Voir tous les résultats</a>';
 
             results.hidden = false;
             input.setAttribute('aria-expanded', 'true');
+
+            results.querySelectorAll('[data-suggest-item]').forEach(function (link) {
+                link.addEventListener('click', function (e) {
+                    if (linkMode === 'follow') return;
+                    e.preventDefault();
+                    var itemId = link.getAttribute('data-item-id');
+                    var item = items.find(function (row) { return String(row.id) === String(itemId); });
+                    if (!item) return;
+                    if (linkMode === 'picker') {
+                        selectPickerItem(item);
+                    } else if (linkMode === 'fill') {
+                        input.value = item.name;
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    hide();
+                });
+            });
         }
 
         function fetchSuggest(q) {
             if (controller) controller.abort();
             controller = new AbortController();
-            fetch('/api/search-suggest?q=' + encodeURIComponent(q) + '&limit=8', {
+            fetch(apiUrl + '?q=' + encodeURIComponent(q) + '&limit=8', {
                 signal: controller.signal,
                 credentials: 'same-origin',
                 headers: { 'Accept': 'application/json' },

@@ -70,28 +70,46 @@ if ($sort !== '' && $sort !== 'newest') {
     aria-label="Filtres produits"
 >
     <div class="filters-panel">
-        <header class="filters-panel-head">
-            <div class="filters-panel-head-text">
-                <h2>Filtres</h2>
-                <?php if ($category): ?>
-                    <p class="filters-panel-context"><?= Helpers::e($category['name']) ?></p>
-                <?php endif; ?>
-            </div>
-            <button type="button" class="filters-close-btn" data-filters-close aria-label="Fermer les filtres">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M18 6L6 18M6 6l12 12"/>
-                </svg>
-            </button>
-        </header>
-
-        <form method="get" class="filters-form" data-filters-form>
+        <form method="get" class="filters-form" data-filters-form id="catalogue-filters-form">
+            <header class="filters-panel-head">
+                <div class="filters-panel-head-text">
+                    <h2>Filtres</h2>
+                </div>
+                <div class="filters-panel-head-actions">
+                    <button type="submit" class="btn btn-primary btn-filter-head">Appliquer</button>
+                    <button type="button" class="filters-close-btn" data-filters-close aria-label="Annuler">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </header>
             <?php if ($catSlug): ?>
                 <input type="hidden" name="cat" value="<?= Helpers::e($catSlug) ?>">
             <?php endif; ?>
 
             <div class="filter-block">
                 <label class="filter-label" for="filter-q">Recherche</label>
-                <input type="search" id="filter-q" name="q" value="<?= Helpers::e($searchQuery) ?>" placeholder="Nom, marque…" class="filter-input">
+                <div
+                    class="filter-search-wrap header-search-wrap"
+                    data-search-suggest
+                    <?= $catSlug !== '' ? 'data-search-cat="' . Helpers::e($catSlug) . '"' : '' ?>
+                >
+                    <input
+                        type="search"
+                        id="filter-q"
+                        name="q"
+                        value="<?= Helpers::e($searchQuery) ?>"
+                        placeholder="Nom, marque…"
+                        class="filter-input"
+                        data-search-input
+                        autocomplete="off"
+                        aria-autocomplete="list"
+                        aria-controls="filter-search-suggest"
+                        aria-expanded="false"
+                    >
+                    <div class="header-search-suggest" id="filter-search-suggest" data-search-results hidden role="listbox" aria-label="Suggestions de recherche"></div>
+                </div>
             </div>
 
             <?php if (!empty($filterMeta['brands'])): ?>
@@ -155,7 +173,6 @@ if ($sort !== '' && $sort !== 'newest') {
             </fieldset>
 
             <div class="filter-actions">
-                <button type="submit" class="btn btn-primary btn-filter">Appliquer</button>
                 <a href="/catalogue.php<?= $catSlug ? '?cat=' . urlencode($catSlug) : '' ?>" class="btn-outline-filter">Réinitialiser</a>
             </div>
         </form>

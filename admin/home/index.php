@@ -709,7 +709,27 @@ require dirname(__DIR__) . '/includes/header.php';
                 </div>
 
                 <p class="he-field-label">Choisir les produits</p>
-                <input type="search" class="he-product-search" placeholder="Rechercher un produit…" data-product-search="featured">
+                <div
+                    class="admin-search-suggest-wrap he-product-search-wrap"
+                    data-search-suggest
+                    data-suggest-api="/admin/produits/suggest.php"
+                    data-suggest-link="picker"
+                    data-suggest-picker="featured"
+                    data-suggest-all-href="/admin/produits/index.php"
+                    data-suggest-all-param="search"
+                >
+                    <input
+                        type="search"
+                        class="he-product-search"
+                        placeholder="Rechercher un produit…"
+                        data-product-search="featured"
+                        data-search-input
+                        autocomplete="off"
+                        aria-autocomplete="list"
+                        aria-expanded="false"
+                    >
+                    <div class="header-search-suggest" data-search-results hidden role="listbox" aria-label="Suggestions produits"></div>
+                </div>
                 <div class="he-product-picker" data-product-picker="featured">
                     <?php foreach ($pickerProducts as $product): ?>
                         <?php $checked = in_array((int) $product['id'], $featuredSelected, true); ?>
@@ -805,7 +825,27 @@ require dirname(__DIR__) . '/includes/header.php';
                     <label><input type="radio" name="bestsellers_align" value="right" <?= $home['bestsellers_align'] === 'right' ? 'checked' : '' ?>> Droite</label>
                 </div>
                 <p class="he-field-label">Choisir les produits (optionnel)</p>
-                <input type="search" class="he-product-search" placeholder="Rechercher un produit…" data-product-search="bestsellers">
+                <div
+                    class="admin-search-suggest-wrap he-product-search-wrap"
+                    data-search-suggest
+                    data-suggest-api="/admin/produits/suggest.php"
+                    data-suggest-link="picker"
+                    data-suggest-picker="bestsellers"
+                    data-suggest-all-href="/admin/produits/index.php"
+                    data-suggest-all-param="search"
+                >
+                    <input
+                        type="search"
+                        class="he-product-search"
+                        placeholder="Rechercher un produit…"
+                        data-product-search="bestsellers"
+                        data-search-input
+                        autocomplete="off"
+                        aria-autocomplete="list"
+                        aria-expanded="false"
+                    >
+                    <div class="header-search-suggest" data-search-results hidden role="listbox" aria-label="Suggestions produits"></div>
+                </div>
                 <div class="he-product-picker" data-product-picker="bestsellers">
                     <?php foreach ($pickerProducts as $product): ?>
                         <?php $checked = in_array((int) $product['id'], $bestsellersSelected, true); ?>

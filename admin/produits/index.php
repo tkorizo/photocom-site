@@ -166,7 +166,25 @@ require dirname(__DIR__) . '/includes/kpi.php';
 <div class="panel">
     <div class="panel-header products-list-toolbar">
         <form method="get" class="search-form">
-            <input type="text" name="search" value="<?= Helpers::e($search) ?>" placeholder="Rechercher nom, SKU, marque…">
+            <div
+                class="admin-search-suggest-wrap"
+                data-search-suggest
+                data-suggest-api="/admin/produits/suggest.php"
+                data-suggest-all-href="/admin/produits/index.php"
+                data-suggest-all-param="search"
+            >
+                <input
+                    type="search"
+                    name="search"
+                    value="<?= Helpers::e($search) ?>"
+                    placeholder="Rechercher nom, SKU, marque…"
+                    data-search-input
+                    autocomplete="off"
+                    aria-autocomplete="list"
+                    aria-expanded="false"
+                >
+                <div class="header-search-suggest" data-search-results hidden role="listbox" aria-label="Suggestions produits"></div>
+            </div>
             <select name="category_id">
                 <option value="">Toutes catégories</option>
                 <?php foreach ($categories as $cat): ?>

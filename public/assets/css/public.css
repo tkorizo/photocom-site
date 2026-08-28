@@ -1563,7 +1563,7 @@ body.page-catalogue a:hover {
 
 .filters-panel-head {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
     margin: 0 0 1rem;
@@ -1573,6 +1573,50 @@ body.page-catalogue a:hover {
 
 .filters-panel-head-text {
     min-width: 0;
+    flex: 1;
+}
+
+.filters-panel-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-shrink: 0;
+}
+
+.btn-filter-head {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+.filters-close-btn {
+    display: inline-flex;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: #e8e8ec;
+    color: #5c5c66;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.filters-close-btn:hover {
+    background: #dedee4;
+    color: #2f2f36;
+}
+
+.filter-search-wrap {
+    position: relative;
+    z-index: 3;
+}
+
+.filter-search-wrap .header-search-suggest {
+    z-index: 12;
 }
 
 .filters-panel-head h2 {
@@ -1584,22 +1628,27 @@ body.page-catalogue a:hover {
     color: var(--catalogue-text);
 }
 
-.filters-close-btn {
-    display: none;
-    flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #ebebef;
-    border-radius: var(--radius);
-    background: #fff;
-    color: var(--catalogue-text);
-    cursor: pointer;
-}
+@media (min-width: 901px) {
+    .catalogue-filters .filters-panel {
+        max-height: calc(100vh - var(--header-sticky-height) - 2.5rem);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+    }
 
-.filters-toolbar {
-    display: contents;
+    .catalogue-filters .filters-panel-head {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        margin: -1.15rem -1.1rem 1rem;
+        padding: 1.15rem 1.1rem 0.85rem;
+        background: #fff;
+        border-bottom: 1px solid #f0f0f3;
+    }
+
+    .catalogue-filters .filters-panel-head-actions .btn-filter-head {
+        min-height: 36px;
+    }
 }
 
 .filters-open-btn {
@@ -1768,9 +1817,8 @@ body.page-catalogue a:hover {
     border-top: 1px solid #f0f0f3;
 }
 
-.btn-filter {
-    width: 100%;
-    justify-content: center;
+.filters-toolbar {
+    display: contents;
 }
 
 .btn-outline-filter {
@@ -3723,24 +3771,23 @@ body.page-home .brand-block:hover {
         z-index: 2;
         align-items: center;
         margin: 0 -1.1rem 1rem;
-        padding: 1rem 1.1rem 0.85rem;
+        padding: 0.85rem 1.1rem;
         background: #fff;
         border-bottom: 1px solid #f0f0f3;
     }
 
-    .filters-close-btn {
-        display: inline-flex;
+    .filters-panel-head-actions .btn-filter-head {
+        min-height: 36px;
+        padding: 0.45rem 0.9rem;
     }
 
     .filter-actions {
-        position: sticky;
-        bottom: 0;
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0), #fff 28%);
-        padding-top: 1.25rem;
+        position: static;
+        background: transparent;
+        padding-top: 0.85rem;
         padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.5rem));
     }
 
-    .filter-actions .btn-filter,
     .filter-actions .btn-outline-filter {
         min-height: 44px;
         width: 100%;
