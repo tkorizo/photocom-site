@@ -180,7 +180,7 @@ $activeNav = 'about';
                             <li><strong>Email</strong><a href="mailto:<?= Helpers::e($email) ?>"><?= Helpers::e($email) ?></a></li>
                         <?php endif; ?>
                         <?php if ($hours !== ''): ?>
-                            <li><strong>Horaires</strong><span><?= Helpers::e($hours) ?></span></li>
+                            <li><strong>Horaires</strong><span class="hours-multiline"><?= Helpers::multiline($hours) ?></span></li>
                         <?php endif; ?>
                     </ul>
                 </div>

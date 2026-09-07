@@ -2155,6 +2155,12 @@ body.page-catalogue .pagination a:hover {
 
 .footer-contact li { margin-bottom: 0.75rem; }
 
+.hours-multiline {
+    white-space: pre-line;
+    display: inline-block;
+    line-height: 1.55;
+}
+
 .footer-bottom {
     background: var(--primary);
     color: #fff;
@@ -2443,19 +2449,35 @@ body.page-home .brand-block:hover {
     height: 100%;
     object-fit: cover;
     transform: scale(1.02);
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.45s ease;
+    pointer-events: none;
+}
+
+.hero-video-el.is-ready {
+    opacity: 1;
 }
 
 .hero-image-el {
     position: absolute;
     inset: 0;
-    background-image: var(--hero-image);
+    z-index: 0;
+    background-image: var(--hero-image-desktop, var(--hero-image));
     background-size: cover;
     background-position: center;
+}
+
+@media (max-width: 900px) {
+    .hero-image-el {
+        background-image: var(--hero-image-mobile, var(--hero-image-desktop, var(--hero-image)));
+    }
 }
 
 .hero-video-fallback {
     position: absolute;
     inset: 0;
+    z-index: 3;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2508,6 +2530,7 @@ body.page-home .brand-block:hover {
     bottom: clamp(2rem, 6vh, 4.5rem);
     width: 100%;
     max-width: none;
+    z-index: 3;
     animation: heroCaptionIn 0.85s var(--ease-out) both;
 }
 
@@ -2528,6 +2551,7 @@ body.page-home .brand-block:hover {
 .hero-video-overlay {
     position: absolute;
     inset: 0;
+    z-index: 2;
     background:
         linear-gradient(
             to top,

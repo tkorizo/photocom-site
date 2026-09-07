@@ -183,12 +183,11 @@ class Database
         $db = self::getInstance();
 
         try {
-            $db->exec("UPDATE users SET role = 'catalog' WHERE role = 'editor'");
+            $superCount = (int) $db->query("SELECT COUNT(*) FROM users WHERE role = 'super_admin'")->fetchColumn();
         } catch (Throwable) {
             return;
         }
 
-        $superCount = (int) $db->query("SELECT COUNT(*) FROM users WHERE role = 'super_admin'")->fetchColumn();
         if ($superCount > 0) {
             return;
         }

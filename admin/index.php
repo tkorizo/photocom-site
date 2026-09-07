@@ -41,6 +41,8 @@ require __DIR__ . '/includes/header.php';
             <?= Helpers::e(UserRepository::roleLabel((string) ($user['role'] ?? ''))) ?> —
             <?php if ($isAdmin): ?>
                 catalogue, contenu et configuration du site.
+            <?php elseif ($canCatalog && $canContent): ?>
+                gestion du catalogue et du contenu.
             <?php elseif ($canContent): ?>
                 gestion des articles du blog Conseils.
             <?php else: ?>
@@ -92,6 +94,16 @@ require __DIR__ . '/includes/header.php';
         </div>
         <small>Produits en promo</small>
     </a>
+    <?php if ($canContent): ?>
+    <a href="/admin/articles/index.php" class="dash-stat-card dash-stat-accent">
+        <span class="dash-stat-icon"><?= adminIcon('pen', 20) ?></span>
+        <div>
+            <strong><?= $articleCount ?></strong>
+            <span>Articles publiés</span>
+        </div>
+        <small>Blog Conseils</small>
+    </a>
+    <?php endif; ?>
 </div>
 <?php elseif ($canContent): ?>
 <div class="dash-stats">
@@ -145,6 +157,21 @@ require __DIR__ . '/includes/header.php';
                     <span class="module-icon module-icon-accent"><?= adminIcon('plus') ?></span>
                     <h4>Nouvel article</h4>
                     <p>Rédiger un article pour Conseils.</p>
+                </a>
+                <a href="/admin/about/index.php" class="module-card">
+                    <span class="module-icon"><?= adminIcon('doc') ?></span>
+                    <h4>Qui sommes-nous</h4>
+                    <p>Textes de la page À propos.</p>
+                </a>
+                <a href="/admin/contact/index.php" class="module-card">
+                    <span class="module-icon"><?= adminIcon('chat') ?></span>
+                    <h4>Contact</h4>
+                    <p>Textes de la page Contact.</p>
+                </a>
+                <a href="/admin/conseils-page/index.php" class="module-card">
+                    <span class="module-icon"><?= adminIcon('pen') ?></span>
+                    <h4>Page Conseils</h4>
+                    <p>En-tête et contenus de la page blog.</p>
                 </a>
             <?php endif; ?>
         <?php endif; ?>

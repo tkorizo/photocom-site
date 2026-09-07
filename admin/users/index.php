@@ -51,6 +51,7 @@ require dirname(__DIR__) . '/includes/header.php';
             <p class="text-muted">
                 <strong>Gestion de contenu</strong> (articles) ·
                 <strong>Gestion de produits</strong> (catalogue) ·
+                <strong>Éditeur</strong> (catalogue et contenu) ·
                 <strong>Administrateur</strong> (accès complet) ·
                 <strong>Super administrateur</strong> (compte unique + journal).
             </p>

@@ -1,5 +1,4 @@
 .env
-.env.hostinger
 .DS_Store
 database/photocom.sqlite
 uploads/products/*
@@ -10,7 +9,3 @@ uploads/articles/*
 !uploads/articles/.gitkeep
 storage/logs/*
 !storage/logs/.gitkeep
-storage/backups/
-
-uploads/home/*
-!uploads/home/.gitkeep

@@ -10,6 +10,7 @@ class Auth
 
     public const ROLE_CONTENT = 'content';
     public const ROLE_CATALOG = 'catalog';
+    public const ROLE_EDITOR = 'editor';
     public const ROLE_ADMIN = 'admin';
     public const ROLE_SUPER_ADMIN = 'super_admin';
 
@@ -17,6 +18,7 @@ class Auth
     public const ROLES = [
         self::ROLE_CONTENT,
         self::ROLE_CATALOG,
+        self::ROLE_EDITOR,
         self::ROLE_ADMIN,
         self::ROLE_SUPER_ADMIN,
     ];
@@ -128,12 +130,12 @@ class Auth
 
     public static function canManageCatalog(): bool
     {
-        return in_array(self::role(), [self::ROLE_CATALOG, self::ROLE_ADMIN, self::ROLE_SUPER_ADMIN], true);
+        return in_array(self::role(), [self::ROLE_CATALOG, self::ROLE_EDITOR, self::ROLE_ADMIN, self::ROLE_SUPER_ADMIN], true);
     }
 
     public static function canManageContent(): bool
     {
-        return in_array(self::role(), [self::ROLE_CONTENT, self::ROLE_ADMIN, self::ROLE_SUPER_ADMIN], true);
+        return in_array(self::role(), [self::ROLE_CONTENT, self::ROLE_EDITOR, self::ROLE_ADMIN, self::ROLE_SUPER_ADMIN], true);
     }
 
     public static function canManageUsers(): bool

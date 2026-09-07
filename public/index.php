@@ -54,14 +54,22 @@ $heroAlign = $home['hero_align'] ?? 'left';
 $heroVertical = $home['hero_vertical'] ?? 'center';
 $heroHeight = $home['hero_height'] ?? 'medium';
 $heroOverlay = max(0, min(90, (int) ($home['hero_overlay'] ?? 55)));
-$heroMediaType = $home['hero_media_type'] ?? 'none';
-$heroImageUrl = $home['hero_image_url'] ?? '';
-if ($heroMediaType === 'none') {
-    if ($heroVideoUrl !== '') {
-        $heroMediaType = 'video';
-    } elseif ($heroImageUrl !== '') {
-        $heroMediaType = 'image';
-    }
+$heroImageDesktop = $heroImageUrl !== '' ? $heroImageUrl : $heroVideoPoster;
+$heroImageMobile = $heroImageUrlMobile !== '' ? $heroImageUrlMobile : $heroImageDesktop;
+$heroVideoDesktop = $heroVideoUrl;
+$heroVideoMobile = $heroVideoUrlMobile !== '' ? $heroVideoUrlMobile : $heroVideoDesktop;
+if ($heroVideoDesktop === '' && $heroVideoMobile !== '') {
+    $heroVideoDesktop = $heroVideoMobile;
+}
+$hasHeroImage = $heroImageDesktop !== '' || $heroImageMobile !== '';
+$hasHeroVideo = $heroVideoDesktop !== '' || $heroVideoMobile !== '';
+$heroLoop = ($home['hero_loop'] ?? '1') === '1';
+$heroCssVars = '--hero-overlay: ' . $heroOverlay . ';';
+if ($heroImageDesktop !== '') {
+    $heroCssVars .= '--hero-image-desktop: url(' . $heroImageDesktop . ');';
+}
+if ($heroImageMobile !== '') {
+    $heroCssVars .= '--hero-image-mobile: url(' . $heroImageMobile . ');';
 }
 ?>
 <!DOCTYPE html>
@@ -78,18 +86,16 @@ if ($heroMediaType === 'none') {
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>
     <?php
-    $heroPosterPreload = '';
-    if (($heroMediaType ?? '') === 'video') {
-        $heroPosterPreload = trim((string) ($heroVideoPoster ?? ''));
-        if ($heroPosterPreload === '') {
-            $heroPosterPreload = trim((string) ($heroImageUrl ?? ''));
-        }
-    } elseif (($heroMediaType ?? '') === 'image') {
-        $heroPosterPreload = trim((string) ($heroImageUrl ?? ''));
-    }
-    if ($heroPosterPreload !== ''):
+    if ($heroImageDesktop !== '' && $heroImageDesktop === $heroImageMobile):
     ?>
-    <link rel="preload" as="image" href="<?= Helpers::e($heroPosterPreload) ?>" fetchpriority="high">
+    <link rel="preload" as="image" href="<?= Helpers::e($heroImageDesktop) ?>" fetchpriority="high">
+    <?php else: ?>
+        <?php if ($heroImageDesktop !== ''): ?>
+    <link rel="preload" as="image" href="<?= Helpers::e($heroImageDesktop) ?>" media="(min-width: 901px)" fetchpriority="high">
+        <?php endif; ?>
+        <?php if ($heroImageMobile !== ''): ?>
+    <link rel="preload" as="image" href="<?= Helpers::e($heroImageMobile) ?>" media="(max-width: 900px)" fetchpriority="high">
+        <?php endif; ?>
     <?php endif; ?>
     <?php require __DIR__ . '/includes/site-assets.php'; ?>
 </head>
@@ -101,37 +107,33 @@ if ($heroMediaType === 'none') {
     <main id="main">
         <?php if ($isOn('hero_enabled')): ?>
         <section
-            class="hero-video hero-align-<?= Helpers::e($heroAlign) ?> hero-vertical-<?= Helpers::e($heroVertical) ?> hero-height-<?= Helpers::e($heroHeight) ?><?= $heroMediaType === 'image' ? ' has-hero-image' : '' ?>"
+            class="hero-video hero-align-<?= Helpers::e($heroAlign) ?> hero-vertical-<?= Helpers::e($heroVertical) ?> hero-height-<?= Helpers::e($heroHeight) ?><?= $hasHeroImage ? ' has-hero-image' : '' ?>"
             aria-label="Présentation"
-            style="--hero-overlay: <?= $heroOverlay ?>;<?= $heroMediaType === 'image' && $heroImageUrl !== '' ? ' --hero-image: url(' . Helpers::e($heroImageUrl) . ');' : '' ?>"
+            style="<?= Helpers::e($heroCssVars) ?>"
         >
-            <div class="hero-video-wrap">
-                <?php if ($heroMediaType === 'video' && $heroVideoUrl): ?>
-                    <?php
-                    $heroPosterAttr = trim((string) $heroVideoPoster) !== ''
-                        ? $heroVideoPoster
-                        : (trim((string) $heroImageUrl) !== '' ? $heroImageUrl : '');
-                    ?>
+            <div
+                class="hero-video-wrap"
+                data-hero
+                data-hero-video-desktop="<?= Helpers::e($heroVideoDesktop) ?>"
+                data-hero-video-mobile="<?= Helpers::e($heroVideoMobile) ?>"
+                data-hero-timeout="10000"
+                data-hero-loop="<?= $heroLoop ? '1' : '0' ?>"
+            >
+                <?php if ($hasHeroImage): ?>
+                    <div class="hero-image-el" aria-hidden="true"></div>
+                <?php endif; ?>
+                <?php if ($hasHeroVideo): ?>
                     <video
                         class="hero-video-el"
                         muted
-                        loop
+                        <?= $heroLoop ? 'loop' : '' ?>
+                        autoplay
                         playsinline
-                        preload="none"
-                        poster="<?= Helpers::e($heroPosterAttr) ?>"
-                        data-hero-src="<?= Helpers::e($heroVideoUrl) ?>"
+                        webkit-playsinline
+                        preload="auto"
                     ></video>
-                    <div class="hero-video-overlay"></div>
-                    <div class="hero-video-caption container">
-                        <span class="hero-kicker"><?= Helpers::e($home['hero_kicker']) ?></span>
-                        <h1><?= Helpers::e($home['hero_title']) ?></h1>
-                        <?php if ($isOn('hero_show_subtitle')): ?>
-                            <p><?= Helpers::e($home['hero_subtitle'] ?: $tagline) ?></p>
-                        <?php endif; ?>
-                        <a href="<?= Helpers::e($home['hero_cta_url'] ?: '/catalogue.php') ?>" class="btn btn-primary"><?= Helpers::e($home['hero_cta_label']) ?></a>
-                    </div>
-                <?php elseif ($heroMediaType === 'image' && $heroImageUrl !== ''): ?>
-                    <div class="hero-image-el" aria-hidden="true"></div>
+                <?php endif; ?>
+                <?php if ($hasHeroImage || $hasHeroVideo): ?>
                     <div class="hero-video-overlay"></div>
                     <div class="hero-video-caption container">
                         <span class="hero-kicker"><?= Helpers::e($home['hero_kicker']) ?></span>
@@ -304,32 +306,8 @@ if ($heroMediaType === 'none') {
     <?php require __DIR__ . '/includes/site-footer.php'; ?>
     <?php require __DIR__ . '/includes/site-chat.php'; ?>
     <?php require __DIR__ . '/includes/site-cookies.php'; ?>
-    <?php if ($heroMediaType === 'video' && $heroVideoUrl): ?>
-    <script>
-    (function () {
-        var video = document.querySelector('video.hero-video-el[data-hero-src]');
-        if (!video) return;
-        var src = video.getAttribute('data-hero-src');
-        if (!src) return;
-        var loadHero = function () {
-            if (video.dataset.loaded === '1') return;
-            video.dataset.loaded = '1';
-            var source = document.createElement('source');
-            source.src = src;
-            source.type = 'video/mp4';
-            video.appendChild(source);
-            video.load();
-            var play = function () { video.play().catch(function () {}); };
-            if (video.readyState >= 2) play();
-            else video.addEventListener('loadeddata', play, { once: true });
-        };
-        if ('requestIdleCallback' in window) {
-            requestIdleCallback(loadHero, { timeout: 1800 });
-        } else {
-            window.addEventListener('load', function () { setTimeout(loadHero, 200); });
-        }
-    })();
-    </script>
+    <?php if ($hasHeroVideo): ?>
+    <script src="/assets/js/home.js?v=<?= is_file(__DIR__ . '/assets/js/home.js') ? filemtime(__DIR__ . '/assets/js/home.js') : time() ?>" defer></script>
     <?php endif; ?>
     <?php require __DIR__ . '/includes/site-end-scripts.php'; ?>
 </body>

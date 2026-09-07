@@ -16,7 +16,7 @@ return [
     'phone' => env('PHONE', '+212 522 865 417'),
     'email' => env('EMAIL', 'contact@photocom.ma'),
     'address' => env('ADDRESS', '7 Allée de Persée, Boulevard Abdelmoumen, Casablanca'),
-    'hours' => env('HOURS', 'Lundi - Samedi : 8h30 - 19h00'),
+    'hours' => env('HOURS', "Lundi au vendredi : 9h00 – 13h00 / 15h00 – 19h00\nSamedi : 9h00 – 13h00\nRamadan : 10h00 – 17h00"),
     'founded' => env('FOUNDED', '2010'),
     'import_enabled' => false,
 ];

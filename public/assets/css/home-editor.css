@@ -802,6 +802,52 @@
     gap: 0.55rem;
 }
 
+.he-hero-slots {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7rem;
+    margin-bottom: 0.9rem;
+}
+
+.he-hero-slot {
+    background: #1c1c22;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 0.7rem 0.65rem 0.55rem;
+}
+
+.he-hero-slot-title {
+    display: block;
+    font-size: 0.78rem;
+    margin-bottom: 0.15rem;
+    color: #f3f3f3;
+}
+
+.he-hero-slot .he-note-inline {
+    margin-top: 0;
+}
+
+.he-media-preview {
+    margin: 0.4rem 0;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #111;
+    max-height: 90px;
+}
+
+.he-media-preview img {
+    display: block;
+    width: 100%;
+    height: 90px;
+    object-fit: cover;
+}
+
+@media (max-width: 720px) {
+    .he-hero-slots {
+        grid-template-columns: 1fr;
+    }
+}
+
 .he-sep {
     border: none;
     border-top: 1px solid rgba(255, 255, 255, 0.08);

@@ -109,7 +109,7 @@ $waBase = 'https://wa.me/' . $waDigits;
                                 <?php if ($hours !== ''): ?>
                                     <li>
                                         <strong>Horaires</strong>
-                                        <span><?= Helpers::e($hours) ?></span>
+                                        <span class="hours-multiline"><?= Helpers::multiline($hours) ?></span>
                                     </li>
                                 <?php endif; ?>
                                 <?php if ($whatsapp !== ''): ?>

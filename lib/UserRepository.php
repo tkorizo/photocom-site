@@ -42,9 +42,6 @@ class UserRepository
     public static function normalizeRole(string $role): string
     {
         $role = trim($role);
-        if ($role === 'editor') {
-            return Auth::ROLE_CATALOG;
-        }
 
         return in_array($role, Auth::ROLES, true) ? $role : Auth::ROLE_CATALOG;
     }
@@ -55,6 +52,7 @@ class UserRepository
         return [
             Auth::ROLE_CONTENT => 'Gestion de contenu — articles et pages',
             Auth::ROLE_CATALOG => 'Gestion de produits — catalogue complet',
+            Auth::ROLE_EDITOR => 'Éditeur — catalogue et contenu',
             Auth::ROLE_ADMIN => 'Administrateur — accès complet',
         ];
     }
@@ -192,6 +190,7 @@ class UserRepository
         return match (self::normalizeRole($role)) {
             Auth::ROLE_SUPER_ADMIN => 'Super administrateur',
             Auth::ROLE_ADMIN => 'Administrateur',
+            Auth::ROLE_EDITOR => 'Éditeur',
             Auth::ROLE_CATALOG => 'Gestion de produits',
             Auth::ROLE_CONTENT => 'Gestion de contenu',
             default => $role,
@@ -203,6 +202,7 @@ class UserRepository
         return match (self::normalizeRole($role)) {
             Auth::ROLE_SUPER_ADMIN => 'badge-success',
             Auth::ROLE_ADMIN => 'badge-success',
+            Auth::ROLE_EDITOR => 'badge-info',
             Auth::ROLE_CATALOG => 'badge-muted',
             Auth::ROLE_CONTENT => 'badge-muted',
             default => 'badge-muted',

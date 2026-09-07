@@ -52,7 +52,7 @@ declare(strict_types=1);
                 <li><?= Helpers::e($address) ?></li>
                 <li><a href="tel:<?= preg_replace('/\s+/', '', $phone) ?>"><?= Helpers::e($phone) ?></a></li>
                 <li><a href="mailto:<?= Helpers::e($email) ?>"><?= Helpers::e($email) ?></a></li>
-                <li><?= Helpers::e($hours) ?></li>
+                <li class="hours-multiline"><?= Helpers::multiline($hours) ?></li>
             </ul>
         </div>
     </div>

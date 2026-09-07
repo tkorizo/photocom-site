@@ -19,6 +19,12 @@ class Helpers
         return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
     }
 
+    /** Texte multiligne échappé (horaires, notes). */
+    public static function multiline(?string $value): string
+    {
+        return nl2br(self::e($value), false);
+    }
+
     /**
      * Nettoie le HTML produit (imports WP / traductions) pour un affichage sûr et lisible.
      */

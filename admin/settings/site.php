@@ -126,10 +126,11 @@ require dirname(__DIR__) . '/includes/header.php';
                 <input type="text" name="address_country" value="<?= Helpers::e($settings['address_country']) ?>">
             </label>
         </div>
+        <label>Horaires
+            <textarea name="hours" rows="4" placeholder="Une plage par ligne"><?= Helpers::e($settings['hours']) ?></textarea>
+            <small class="field-hint">Plusieurs lignes possibles (semaine, samedi, Ramadan…).</small>
+        </label>
         <div class="form-row">
-            <label>Horaires
-                <input type="text" name="hours" value="<?= Helpers::e($settings['hours']) ?>">
-            </label>
             <label>Année de création
                 <input type="text" name="founded" value="<?= Helpers::e($settings['founded']) ?>">
             </label>

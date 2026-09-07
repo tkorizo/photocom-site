@@ -21,8 +21,11 @@ $siteLogo = trim((string) ($home['site_logo'] ?? ''));
 $siteLogoMark = trim((string) ($home['site_logo_mark'] ?? ''));
 $siteFavicon = trim((string) ($home['site_favicon'] ?? ''));
 $promoText = $home['promo_text'];
-$heroVideoUrl = $home['hero_video_url'];
-$heroVideoPoster = $home['hero_video_poster'];
+$heroVideoUrl = trim((string) ($home['hero_video_url'] ?? ''));
+$heroVideoUrlMobile = trim((string) ($home['hero_video_url_mobile'] ?? ''));
+$heroImageUrl = trim((string) ($home['hero_image_url'] ?? ''));
+$heroImageUrlMobile = trim((string) ($home['hero_image_url_mobile'] ?? ''));
+$heroVideoPoster = trim((string) ($home['hero_video_poster'] ?? ''));
 $blogVideos = [
     [
         'url' => $home['home_blog_video_1'],

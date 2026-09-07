@@ -3,14 +3,13 @@
     if (!root) return;
 
     var canvas = document.getElementById('he-canvas');
-    var mediaTypeInput = document.getElementById('hero_media_type');
     var headerOrderInput = document.getElementById('header_order');
 
     var meta = {
         promo: { title: 'Bandeau promo', desc: 'Texte affiché tout en haut du site' },
         nav: { title: 'Navigation', desc: 'Logo, favicon, ordre et disposition du header' },
         menu: { title: 'Menu catégories', desc: 'Ajoutez, renommez et liez librement les boutons du mega menu' },
-        hero: { title: 'Hero', desc: 'Photo ou vidéo d’arrière-plan + textes' },
+        hero: { title: 'Hero', desc: 'Vidéo + image de secours, desktop et mobile' },
         featured: { title: 'Produits en vedette', desc: 'Choisissez précisément les produits affichés' },
         conseils: { title: 'Conseils / Vidéos', desc: 'Titres et 2 vidéos YouTube' },
         brands: { title: 'Marques', desc: 'Titres et logos cliquables vers chaque marque' },
@@ -271,38 +270,29 @@
         });
     }
 
-    // Hero media type buttons
-    function setHeroMedia(type) {
-        if (mediaTypeInput) mediaTypeInput.value = type;
-        root.querySelectorAll('[data-hero-box]').forEach(function (box) {
-            box.classList.toggle('is-open', box.getAttribute('data-hero-box') === type);
-        });
-        var status = root.querySelector('[data-hero-status] strong');
+    function refreshHeroBadge() {
         var badge = root.querySelector('[data-preview-video]');
-        var label = type === 'image' ? 'Photo' : (type === 'video' ? 'Vidéo' : 'Aucun');
-        if (status) status.textContent = label;
-        if (badge) {
-            badge.textContent = type === 'image'
-                ? 'Photo arrière-plan active'
-                : (type === 'video' ? 'Vidéo arrière-plan active' : 'Fond sombre — ajoutez une photo ou une vidéo');
-        }
-        if (type === 'none') {
-            var imgDel = document.getElementById('hero_image_delete');
-            var vidDel = document.getElementById('hero_video_delete');
-            if (imgDel) imgDel.value = '1';
-            if (vidDel) vidDel.value = '1';
-        } else {
-            var del = document.getElementById(type === 'image' ? 'hero_image_delete' : 'hero_video_delete');
-            if (del) del.value = '0';
-        }
-    }
-
-    root.querySelectorAll('[data-hero-set]').forEach(function (btn) {
-        btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            setHeroMedia(btn.getAttribute('data-hero-set'));
+        if (!badge) return;
+        var hasVideo = ['hero_video', 'hero_video_mobile'].some(function (field) {
+            var del = document.getElementById(field + '_delete');
+            var current = root.querySelector('[name="' + field + '_current"]');
+            var file = root.querySelector('[name="' + field + '_file"]');
+            if (del && del.value === '1') return false;
+            if (file && file.files && file.files[0]) return true;
+            return !!(current && current.value);
         });
-    });
+        var hasImage = ['hero_image', 'hero_image_mobile'].some(function (field) {
+            var del = document.getElementById(field + '_delete');
+            var current = root.querySelector('[name="' + field + '_current"]');
+            var file = root.querySelector('[name="' + field + '_file"]');
+            if (del && del.value === '1') return false;
+            if (file && file.files && file.files[0]) return true;
+            return !!(current && current.value);
+        });
+        badge.textContent = hasVideo && hasImage
+            ? 'Vidéo + image de secours'
+            : (hasVideo ? 'Vidéo arrière-plan' : (hasImage ? 'Image de secours' : 'Fond sombre — ajoutez image et vidéo'));
+    }
 
     root.querySelectorAll('[data-clear-media]').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
@@ -310,7 +300,43 @@
             var kind = btn.getAttribute('data-clear-media');
             var del = document.getElementById(kind + '_delete');
             if (del) del.value = '1';
-            setHeroMedia('none');
+            var file = root.querySelector('[name="' + kind + '_file"]');
+            if (file) file.value = '';
+            var current = root.querySelector('[name="' + kind + '_current"]');
+            if (current) current.value = '';
+            var wrap = root.querySelector('[data-preview-wrap="' + kind + '"]');
+            if (wrap) wrap.hidden = true;
+            var note = root.querySelector('[data-current-file="' + kind + '"]');
+            if (note) note.hidden = true;
+            btn.hidden = true;
+            refreshHeroBadge();
+        });
+    });
+
+    root.querySelectorAll('[data-hero-image-preview]').forEach(function (input) {
+        input.addEventListener('change', function () {
+            var file = input.files && input.files[0];
+            if (!file) return;
+            var field = (input.getAttribute('name') || '').replace(/_file$/, '');
+            var del = document.getElementById(field + '_delete');
+            if (del) del.value = '0';
+            var url = URL.createObjectURL(file);
+            var hero = root.querySelector('.he-hero');
+            if (hero) {
+                hero.style.backgroundImage = 'url(' + url + ')';
+                hero.style.backgroundSize = 'cover';
+                hero.style.backgroundPosition = 'center';
+            }
+            refreshHeroBadge();
+        });
+    });
+
+    root.querySelectorAll('input[type="file"][name$="_file"]').forEach(function (input) {
+        input.addEventListener('change', function () {
+            var field = (input.getAttribute('name') || '').replace(/_file$/, '');
+            var del = document.getElementById(field + '_delete');
+            if (del && input.files && input.files[0]) del.value = '0';
+            refreshHeroBadge();
         });
     });
 

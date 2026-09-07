@@ -26,7 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'header_order',
                 'hero_media_type',
                 'hero_image_url',
+                'hero_image_url_mobile',
                 'hero_video_url',
+                'hero_video_url_mobile',
                 'hero_video_poster',
                 'featured_count',
                 'bestsellers_count',
@@ -56,39 +58,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $payload['featured_count'] = (string) max(1, min(8, (int) ($_POST['featured_count'] ?? 2)));
             $payload['bestsellers_count'] = (string) max(1, min(16, (int) ($_POST['bestsellers_count'] ?? 8)));
 
-            $mediaType = $_POST['hero_media_type'] ?? 'none';
-            if (!in_array($mediaType, ['none', 'image', 'video'], true)) {
-                $mediaType = 'none';
-            }
+            $resolveHeroMedia = static function (string $field, string $kind, ?string $existing): string {
+                $path = FileUploader::processMediaField($field, 'home', $existing ?: null, $kind);
+                if ($path) {
+                    return $path;
+                }
+                return trim((string) ($_POST[$field . '_url_manual'] ?? ''));
+            };
 
-            $heroImage = FileUploader::processMediaField('hero_image', 'home', $home['hero_image_url'] ?: null, 'image');
-            $heroVideo = FileUploader::processMediaField('hero_video', 'home', $home['hero_video_url'] ?: null, 'video');
-            $heroPoster = FileUploader::processMediaField('hero_poster', 'home', $home['hero_video_poster'] ?: null, 'image');
+            $payload['hero_image_url'] = $resolveHeroMedia('hero_image', 'image', $home['hero_image_url'] ?: null);
+            $payload['hero_image_url_mobile'] = $resolveHeroMedia('hero_image_mobile', 'image', $home['hero_image_url_mobile'] ?: null);
+            $payload['hero_video_url'] = $resolveHeroMedia('hero_video', 'video', $home['hero_video_url'] ?: null);
+            $payload['hero_video_url_mobile'] = $resolveHeroMedia('hero_video_mobile', 'video', $home['hero_video_url_mobile'] ?: null);
+            $payload['hero_video_poster'] = (string) (FileUploader::processMediaField('hero_poster', 'home', $home['hero_video_poster'] ?: null, 'image') ?? '');
 
-            // URL fallback if no file uploaded
-            if (!$heroImage) {
-                $urlImage = trim((string) ($_POST['hero_image_url_manual'] ?? ''));
-                $heroImage = $urlImage !== '' ? $urlImage : null;
-            }
-            if (!$heroVideo) {
-                $urlVideo = trim((string) ($_POST['hero_video_url_manual'] ?? ''));
-                $heroVideo = $urlVideo !== '' ? $urlVideo : null;
-            }
-
-            $payload['hero_image_url'] = (string) ($heroImage ?? '');
-            $payload['hero_video_url'] = (string) ($heroVideo ?? '');
-            $payload['hero_video_poster'] = (string) ($heroPoster ?? '');
-
-            if ($mediaType === 'image' && $payload['hero_image_url'] === '') {
-                $mediaType = 'none';
-            }
-            if ($mediaType === 'video' && $payload['hero_video_url'] === '') {
-                $mediaType = 'none';
-            }
-            if ($mediaType === 'none') {
-                // keep files but don't force display
-            }
-            $payload['hero_media_type'] = $mediaType;
+            $hasHeroVideo = $payload['hero_video_url'] !== '' || $payload['hero_video_url_mobile'] !== '';
+            $hasHeroImage = $payload['hero_image_url'] !== '' || $payload['hero_image_url_mobile'] !== '' || $payload['hero_video_poster'] !== '';
+            $payload['hero_media_type'] = $hasHeroVideo ? 'video' : ($hasHeroImage ? 'image' : 'none');
 
             $siteLogo = FileUploader::processMediaField('site_logo', 'home', $home['site_logo'] ?: null, 'image');
             $siteLogoMark = FileUploader::processMediaField('site_logo_mark', 'home', $home['site_logo_mark'] ?: null, 'image');
@@ -184,7 +170,6 @@ require dirname(__DIR__) . '/includes/header.php';
 <form method="post" class="he-builder" id="home-builder" data-home-builder enctype="multipart/form-data">
     <?= Auth::csrfField() ?>
     <input type="hidden" name="header_order" id="header_order" value="<?= Helpers::e(implode(',', $headerOrder)) ?>">
-    <input type="hidden" name="hero_media_type" id="hero_media_type" value="<?= Helpers::e($home['hero_media_type'] ?? 'none') ?>">
 
     <div class="he-toolbar">
         <div class="he-toolbar-left">
@@ -296,15 +281,19 @@ require dirname(__DIR__) . '/includes/header.php';
                 <section class="he-block <?= $isOn('hero_enabled') ? '' : 'is-hidden' ?>" data-block="hero">
                     <div class="he-block-label">Hero</div>
                     <?php
-                    $mediaType = $home['hero_media_type'] ?? 'none';
-                    $heroBgStyle = '';
-                    if ($mediaType === 'image' && ($home['hero_image_url'] ?? '') !== '') {
-                        $heroBgStyle = 'background-image:url(' . Helpers::e($home['hero_image_url']) . ');background-size:cover;background-position:center;';
-                    }
-                    $mediaBadge = match ($mediaType) {
-                        'video' => 'Vidéo arrière-plan active',
-                        'image' => 'Photo arrière-plan active',
-                        default => 'Fond sombre — ajoutez une photo ou une vidéo',
+                    $previewImage = trim((string) ($home['hero_image_url'] ?? ''))
+                        ?: trim((string) ($home['hero_image_url_mobile'] ?? ''))
+                        ?: trim((string) ($home['hero_video_poster'] ?? ''));
+                    $hasPreviewVideo = trim((string) ($home['hero_video_url'] ?? '')) !== ''
+                        || trim((string) ($home['hero_video_url_mobile'] ?? '')) !== '';
+                    $heroBgStyle = $previewImage !== ''
+                        ? 'background-image:url(' . Helpers::e($previewImage) . ');background-size:cover;background-position:center;'
+                        : '';
+                    $mediaBadge = match (true) {
+                        $hasPreviewVideo && $previewImage !== '' => 'Vidéo + image de secours',
+                        $hasPreviewVideo => 'Vidéo arrière-plan',
+                        $previewImage !== '' => 'Image de secours',
+                        default => 'Fond sombre — ajoutez image et vidéo',
                     };
                     ?>
                     <div class="he-hero" style="--he-overlay: <?= (int) $home['hero_overlay'] ?>%; <?= $heroBgStyle ?>">
@@ -602,55 +591,66 @@ require dirname(__DIR__) . '/includes/header.php';
             <div class="he-panel-section" data-panel="hero">
                 <label class="he-switch"><input type="checkbox" name="hero_enabled" value="1" <?= $isOn('hero_enabled') ? 'checked' : '' ?>> Afficher le hero</label>
 
-                <p class="he-field-label">Média d'arrière-plan</p>
-                <div class="he-media-actions">
-                    <button type="button" class="btn btn-sm btn-primary" data-hero-set="image">Ajouter une photo</button>
-                    <button type="button" class="btn btn-sm btn-primary" data-hero-set="video">Ajouter une vidéo</button>
-                    <button type="button" class="btn btn-sm btn-danger" data-hero-set="none">Retirer le média</button>
-                </div>
-                <p class="he-media-status" data-hero-status>
-                    Type actuel :
-                    <strong><?= Helpers::e(match ($home['hero_media_type'] ?? 'none') {
-                        'image' => 'Photo',
-                        'video' => 'Vidéo',
-                        default => 'Aucun',
-                    }) ?></strong>
-                </p>
+                <p class="he-field-label">Médias d’arrière-plan</p>
+                <p class="he-note-inline">L’image s’affiche tout de suite. La vidéo se charge ensuite ; si la connexion est trop lente (ou après 10 s), le visiteur reste sur l’image.</p>
+                <?php
+                $heroMediaSlots = [
+                    [
+                        'title' => 'Desktop',
+                        'hint' => 'Écrans larges (≥ 901 px)',
+                        'video_field' => 'hero_video',
+                        'video_url' => (string) ($home['hero_video_url'] ?? ''),
+                        'image_field' => 'hero_image',
+                        'image_url' => (string) ($home['hero_image_url'] ?? ''),
+                    ],
+                    [
+                        'title' => 'Mobile',
+                        'hint' => 'Téléphones et tablettes (≤ 900 px)',
+                        'video_field' => 'hero_video_mobile',
+                        'video_url' => (string) ($home['hero_video_url_mobile'] ?? ''),
+                        'image_field' => 'hero_image_mobile',
+                        'image_url' => (string) ($home['hero_image_url_mobile'] ?? ''),
+                    ],
+                ];
+                ?>
+                <div class="he-hero-slots">
+                    <?php foreach ($heroMediaSlots as $slot): ?>
+                        <div class="he-hero-slot">
+                            <strong class="he-hero-slot-title"><?= Helpers::e($slot['title']) ?></strong>
+                            <p class="he-note-inline"><?= Helpers::e($slot['hint']) ?></p>
 
-                <div class="he-media-box <?= ($home['hero_media_type'] ?? '') === 'image' ? 'is-open' : '' ?>" data-hero-box="image">
-                    <label>Photo (JPG/PNG/WebP, max 5 Mo)
-                        <input type="file" name="hero_image_file" accept="image/jpeg,image/png,image/gif,image/webp">
-                    </label>
-                    <input type="hidden" name="hero_image_current" value="<?= Helpers::e($home['hero_image_url'] ?? '') ?>">
-                    <input type="hidden" name="hero_image_delete" value="0" id="hero_image_delete">
-                    <?php if (($home['hero_image_url'] ?? '') !== ''): ?>
-                        <div class="he-media-preview"><img src="<?= Helpers::e($home['hero_image_url']) ?>" alt=""></div>
-                        <button type="button" class="btn btn-sm" data-clear-media="hero_image">Supprimer la photo</button>
-                    <?php endif; ?>
-                    <label>Ou URL photo
-                        <input type="url" name="hero_image_url_manual" value="<?= Helpers::e(str_starts_with((string) ($home['hero_image_url'] ?? ''), 'http') ? $home['hero_image_url'] : '') ?>" placeholder="https://…">
-                    </label>
+                            <label>Vidéo MP4 / WebM (max 50 Mo)
+                                <input type="file" name="<?= Helpers::e($slot['video_field']) ?>_file" accept="video/mp4,video/webm">
+                            </label>
+                            <input type="hidden" name="<?= Helpers::e($slot['video_field']) ?>_current" value="<?= Helpers::e($slot['video_url']) ?>">
+                            <input type="hidden" name="<?= Helpers::e($slot['video_field']) ?>_delete" value="0" id="<?= Helpers::e($slot['video_field']) ?>_delete">
+                            <?php if ($slot['video_url'] !== ''): ?>
+                                <p class="he-note-inline" data-current-file="<?= Helpers::e($slot['video_field']) ?>">Fichier actuel : <?= Helpers::e(basename($slot['video_url'])) ?></p>
+                                <button type="button" class="btn btn-sm" data-clear-media="<?= Helpers::e($slot['video_field']) ?>">Supprimer la vidéo</button>
+                            <?php endif; ?>
+                            <label>Ou URL vidéo
+                                <input type="url" name="<?= Helpers::e($slot['video_field']) ?>_url_manual" value="<?= Helpers::e(str_starts_with($slot['video_url'], 'http') ? $slot['video_url'] : '') ?>" placeholder="https://…/video.mp4">
+                            </label>
+
+                            <label>Image de secours (JPG/PNG/WebP, max 5 Mo)
+                                <input type="file" name="<?= Helpers::e($slot['image_field']) ?>_file" accept="image/jpeg,image/png,image/gif,image/webp" data-hero-image-preview>
+                            </label>
+                            <input type="hidden" name="<?= Helpers::e($slot['image_field']) ?>_current" value="<?= Helpers::e($slot['image_url']) ?>">
+                            <input type="hidden" name="<?= Helpers::e($slot['image_field']) ?>_delete" value="0" id="<?= Helpers::e($slot['image_field']) ?>_delete">
+                            <?php if ($slot['image_url'] !== ''): ?>
+                                <div class="he-media-preview" data-preview-wrap="<?= Helpers::e($slot['image_field']) ?>">
+                                    <img src="<?= Helpers::e($slot['image_url']) ?>" alt="">
+                                </div>
+                                <button type="button" class="btn btn-sm" data-clear-media="<?= Helpers::e($slot['image_field']) ?>">Supprimer l’image</button>
+                            <?php endif; ?>
+                            <label>Ou URL image
+                                <input type="url" name="<?= Helpers::e($slot['image_field']) ?>_url_manual" value="<?= Helpers::e(str_starts_with($slot['image_url'], 'http') ? $slot['image_url'] : '') ?>" placeholder="https://…">
+                            </label>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
 
-                <div class="he-media-box <?= ($home['hero_media_type'] ?? '') === 'video' ? 'is-open' : '' ?>" data-hero-box="video">
-                    <label>Vidéo MP4 (max 50 Mo)
-                        <input type="file" name="hero_video_file" accept="video/mp4,video/webm">
-                    </label>
-                    <input type="hidden" name="hero_video_current" value="<?= Helpers::e($home['hero_video_url'] ?? '') ?>">
-                    <input type="hidden" name="hero_video_delete" value="0" id="hero_video_delete">
-                    <?php if (($home['hero_video_url'] ?? '') !== ''): ?>
-                        <p class="he-note-inline">Fichier actuel : <?= Helpers::e(basename($home['hero_video_url'])) ?></p>
-                        <button type="button" class="btn btn-sm" data-clear-media="hero_video">Supprimer la vidéo</button>
-                    <?php endif; ?>
-                    <label>Ou URL vidéo MP4
-                        <input type="url" name="hero_video_url_manual" value="<?= Helpers::e(str_starts_with((string) ($home['hero_video_url'] ?? ''), 'http') ? $home['hero_video_url'] : '') ?>" placeholder="https://…/video.mp4">
-                    </label>
-                    <label>Image poster (optionnel)
-                        <input type="file" name="hero_poster_file" accept="image/jpeg,image/png,image/webp">
-                    </label>
-                    <input type="hidden" name="hero_poster_current" value="<?= Helpers::e($home['hero_video_poster'] ?? '') ?>">
-                    <input type="hidden" name="hero_poster_delete" value="0">
-                </div>
+                <label class="he-switch"><input type="checkbox" name="hero_loop" value="1" <?= $isOn('hero_loop') ? 'checked' : '' ?>> Lire la vidéo en boucle (sans arrêt)</label>
 
                 <label>Sur-titre
                     <input type="text" name="hero_kicker" value="<?= Helpers::e($home['hero_kicker']) ?>" data-bind="hero_kicker">
@@ -917,6 +917,6 @@ require dirname(__DIR__) . '/includes/header.php';
     </div>
 </form>
 
-<script src="/assets/js/home-editor.js"></script>
+<script src="/assets/js/home-editor.js?v=<?= is_file(dirname(__DIR__, 2) . '/public/assets/js/home-editor.js') ? filemtime(dirname(__DIR__, 2) . '/public/assets/js/home-editor.js') : time() ?>"></script>
 
 <?php require dirname(__DIR__) . '/includes/footer.php'; ?>
