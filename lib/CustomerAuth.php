@@ -28,8 +28,11 @@ class CustomerAuth
             || !password_verify($password, (string) $customer['password_hash'])
         ) {
             self::recordFailedAttempt();
+            RateLimiter::fail('customer_login', self::MAX_ATTEMPTS, self::LOCKOUT_SECONDS);
             return false;
         }
+
+        RateLimiter::reset('customer_login');
 
         session_regenerate_id(true);
         $_SESSION[self::SESSION_KEY] = [
@@ -81,7 +84,7 @@ class CustomerAuth
     private static function isLockedOut(): bool
     {
         $until = (int) ($_SESSION['customer_lockout_until'] ?? 0);
-        return $until > time();
+        return $until > time() || RateLimiter::isLocked('customer_login');
     }
 
     private static function recordFailedAttempt(): void

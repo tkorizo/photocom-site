@@ -29,15 +29,22 @@ if ($description === '') {
     $description = trim((string) ($site['site_tagline'] ?? ''));
 }
 $keywords = trim((string) ($seoKeywords ?? ($site['seo_keywords'] ?? '')));
-$robots = trim((string) ($seoRobots ?? ($site['seo_robots'] ?? 'index,follow')));
+// Par défaut : noindex. Seules les fiches produits, pages légales et articles passent index,follow.
+$robots = trim((string) ($seoRobots ?? 'noindex,follow'));
+if ($robots === '') {
+    $robots = 'noindex,follow';
+}
+if (!headers_sent()) {
+    header('X-Robots-Tag: ' . $robots);
+}
 $canonical = trim((string) ($seoCanonical ?? ''));
 if ($canonical === '') {
     $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
     $canonical = $siteUrl . $requestPath;
 }
 $image = trim((string) ($seoImage ?? ''));
-if ($image !== '' && str_starts_with($image, '/')) {
-    $image = $siteUrl . $image;
+if ($image !== '') {
+    $image = Helpers::absoluteUrl($image, $siteUrl);
 }
 $type = ($seoType ?? 'website') === 'article' ? 'article' : 'website';
 
@@ -112,6 +119,28 @@ $jsonLd = array_filter($jsonLd, static fn ($v) => $v !== null && $v !== []);
 if (isset($jsonLd['address']) && is_array($jsonLd['address'])) {
     $jsonLd['address'] = array_filter($jsonLd['address'], static fn ($v) => $v !== null && $v !== '');
 }
+$homeSettings = $home ?? [];
+if ($homeSettings === []) {
+    try {
+        $homeSettings = SettingRepository::home();
+    } catch (Throwable) {
+        $homeSettings = [];
+    }
+}
+$logoUrl = Helpers::absoluteUrl((string) ($homeSettings['site_logo'] ?? ''), $siteUrl);
+if ($logoUrl !== '') {
+    $jsonLd['logo'] = $logoUrl;
+    $jsonLd['image'] = $jsonLd['image'] ?? $logoUrl;
+}
 ?>
 <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
+<?php
+$seoJsonLdExtra = $seoJsonLdExtra ?? [];
+foreach ($seoJsonLdExtra as $extraGraph) {
+    if (!is_array($extraGraph) || $extraGraph === []) {
+        continue;
+    }
+    echo '<script type="application/ld+json">' . json_encode($extraGraph, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>' . "\n";
+}
+?>
 <?php require __DIR__ . '/site-analytics.php'; ?>

@@ -53,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $search = trim((string) ($_GET['q'] ?? ''));
 $customers = CustomerRepository::all($search !== '' ? $search : null);
 $total = CustomerRepository::count();
+$cartSummaries = CustomerCartRepository::summariesByCustomerId();
 
 require dirname(__DIR__) . '/includes/header.php';
 ?>
@@ -73,7 +74,10 @@ require dirname(__DIR__) . '/includes/header.php';
                 <?= (int) $total ?> compte<?= $total > 1 ? 's' : '' ?> au total.
             </p>
         </div>
-        <a href="/compte" target="_blank" class="btn btn-outline">Voir le formulaire public</a>
+        <div class="table-actions">
+            <a href="/admin/clients/paniers.php" class="btn btn-primary">Paniers clients</a>
+            <a href="/compte" target="_blank" class="btn btn-outline">Voir le formulaire public</a>
+        </div>
     </div>
 
     <form method="get" class="search-form" style="margin-bottom:1rem;display:flex;gap:.5rem;flex-wrap:wrap;">
@@ -93,6 +97,7 @@ require dirname(__DIR__) . '/includes/header.php';
                     <th>Nom</th>
                     <th>E-mail</th>
                     <th>Téléphone</th>
+                    <th>Panier</th>
                     <th>Statut</th>
                     <th>Créé le</th>
                     <th>Actions</th>
@@ -100,11 +105,25 @@ require dirname(__DIR__) . '/includes/header.php';
             </thead>
             <tbody>
                 <?php foreach ($customers as $c): ?>
-                    <?php $active = (int) ($c['is_active'] ?? 0) === 1; ?>
+                    <?php
+                    $active = (int) ($c['is_active'] ?? 0) === 1;
+                    $cid = (int) $c['id'];
+                    $cartSummary = $cartSummaries[$cid] ?? null;
+                    ?>
                     <tr>
                         <td><strong><?= Helpers::e((string) $c['name']) ?></strong></td>
                         <td><?= Helpers::e((string) $c['email']) ?></td>
                         <td><?= Helpers::e((string) ($c['phone'] ?? '—')) ?></td>
+                        <td>
+                            <?php if ($cartSummary): ?>
+                                <a href="/admin/clients/panier.php?id=<?= $cid ?>">
+                                    <?= (int) $cartSummary['count'] ?> art.
+                                    · <?= Helpers::e(Helpers::formatPrice((float) $cartSummary['total'])) ?>
+                                </a>
+                            <?php else: ?>
+                                <span class="text-muted">Vide</span>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <span class="badge <?= $active ? 'badge-success' : 'badge-muted' ?>">
                                 <?= $active ? 'Actif' : 'Désactivé' ?>
@@ -112,6 +131,7 @@ require dirname(__DIR__) . '/includes/header.php';
                         </td>
                         <td><?= Helpers::e(substr((string) $c['created_at'], 0, 16)) ?></td>
                         <td class="table-actions">
+                            <a href="/admin/clients/panier.php?id=<?= $cid ?>" class="btn btn-sm">Panier</a>
                             <form method="post" style="display:inline;">
                                 <?= Auth::csrfField() ?>
                                 <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">

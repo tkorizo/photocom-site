@@ -18,6 +18,7 @@ $activeNav = 'about';
     <?php
     $seoTitle = $pageTitle;
     $seoDescription = $about['about_seo_description'];
+    $seoRobots = 'index,follow';
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>

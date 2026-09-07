@@ -73,7 +73,8 @@ $waDigitsFooter = preg_replace('/\D+/', '', (string) ($whatsapp ?? '')) ?: (stri
 <script>
 window.PHOTOCOM = Object.assign({}, window.PHOTOCOM || {}, {
     whatsapp: <?= json_encode($waDigitsFooter, JSON_UNESCAPED_UNICODE) ?>,
-    customerLoggedIn: <?= !empty($customerLoggedIn) ? 'true' : 'false' ?>
+    customerLoggedIn: <?= !empty($customerLoggedIn) ? 'true' : 'false' ?>,
+    csrf: <?= json_encode(Auth::csrfToken(), JSON_UNESCAPED_UNICODE) ?>
 });
 </script>
 <script src="/assets/js/cart.js?v=<?= is_file(__DIR__ . '/../assets/js/cart.js') ? filemtime(__DIR__ . '/../assets/js/cart.js') : time() ?>" defer></script>

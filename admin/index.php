@@ -22,6 +22,8 @@ $user = Auth::user();
 $articleCount = $canContent ? ArticleRepository::countPublished() : 0;
 $siteSettings = $isAdmin ? SettingRepository::site() : [];
 $chatSettings = $isAdmin ? SettingRepository::chat() : [];
+$recentCarts = $isAdmin ? CustomerCartRepository::listNonEmpty(5) : [];
+$cartCount = $isAdmin ? CustomerCartRepository::countNonEmpty() : 0;
 
 require __DIR__ . '/includes/header.php';
 ?>
@@ -207,6 +209,11 @@ require __DIR__ . '/includes/header.php';
                 <h4>Utilisateurs</h4>
                 <p>Rôles et accès de l’équipe.</p>
             </a>
+            <a href="/admin/clients/paniers.php" class="module-card">
+                <span class="module-icon module-icon-accent"><?= adminIcon('bag') ?></span>
+                <h4>Paniers clients</h4>
+                <p><?= $cartCount ?> panier<?= $cartCount > 1 ? 's' : '' ?> en cours — relancer par WhatsApp ou e-mail.</p>
+            </a>
             <?php if ($isSuperAdmin): ?>
                 <a href="/admin/settings/audit-log.php" class="module-card">
                     <span class="module-icon"><?= adminIcon('log') ?></span>
@@ -293,6 +300,45 @@ require __DIR__ . '/includes/header.php';
         </div>
     </section>
 </div>
+<?php endif; ?>
+
+<?php if ($isAdmin): ?>
+<section class="panel panel-modern" style="margin-top:1.5rem">
+    <div class="panel-header">
+        <h2>Paniers clients</h2>
+        <a href="/admin/clients/paniers.php" class="btn btn-sm">Voir tout →</a>
+    </div>
+    <?php if ($recentCarts === []): ?>
+        <p class="empty-state">Aucun panier enregistré. Ils apparaissent dès qu’un client connecté ajoute un produit.</p>
+    <?php else: ?>
+        <table class="data-table data-table-compact">
+            <thead>
+                <tr>
+                    <th>Client</th>
+                    <th>Articles</th>
+                    <th>Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($recentCarts as $cart): ?>
+                    <?php $cust = $cart['customer']; ?>
+                    <tr>
+                        <td>
+                            <strong><?= Helpers::e((string) $cust['name']) ?></strong>
+                            <div><small class="text-muted"><?= Helpers::e((string) $cust['email']) ?></small></div>
+                        </td>
+                        <td><?= (int) $cart['count'] ?></td>
+                        <td><?= Helpers::e(Helpers::formatPrice((float) $cart['total'])) ?></td>
+                        <td class="table-actions">
+                            <a href="/admin/clients/panier.php?id=<?= (int) $cust['id'] ?>" class="btn btn-sm btn-primary">Contacter</a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+</section>
 <?php endif; ?>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>

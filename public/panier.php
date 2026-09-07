@@ -55,6 +55,12 @@ $waDigits = preg_replace('/\D+/', '', (string) $whatsapp) ?: (string) $whatsapp;
                             <strong data-cart-total>0,00 MAD TTC</strong>
                         </div>
                         <p class="cart-summary-note">La commande est envoyée via WhatsApp. Aucun paiement en ligne.</p>
+                        <?php if (empty($customerLoggedIn)): ?>
+                            <p class="cart-summary-note cart-login-hint">
+                                <a href="/compte?tab=login">Connectez-vous</a> pour enregistrer vos commandes dans votre espace boutique.
+                            </p>
+                        <?php endif; ?>
+                        <p class="cart-order-feedback" data-cart-order-feedback hidden></p>
                         <a
                             href="#"
                             class="btn btn-primary btn-cart-order"

@@ -36,6 +36,19 @@ if (!is_array($payload)) {
     exit;
 }
 
+$csrf = (string) ($payload['csrf'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
+if (!Auth::verifyCsrf($csrf !== '' ? $csrf : null)) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Session expirée. Rechargez la page.']);
+    exit;
+}
+
+if (!RateLimiter::allow('chat', 20, 60)) {
+    http_response_code(429);
+    echo json_encode(['error' => 'Trop de requêtes. Réessayez dans une minute.']);
+    exit;
+}
+
 $message = trim((string) ($payload['message'] ?? ''));
 $message = mb_substr(strip_tags($message), 0, 2000);
 
@@ -55,7 +68,17 @@ if ($chat['chat_enabled'] !== '1' || trim($chat['chat_n8n_webhook']) === '') {
 }
 
 $webhook = trim($chat['chat_n8n_webhook']);
-if (!preg_match('#^https://#i', $webhook)) {
+$host = strtolower((string) (parse_url($webhook, PHP_URL_HOST) ?? ''));
+$blockedHost = $host === ''
+    || $host === 'localhost'
+    || $host === '127.0.0.1'
+    || $host === '::1'
+    || str_ends_with($host, '.local')
+    || (
+        filter_var($host, FILTER_VALIDATE_IP) !== false
+        && filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false
+    );
+if (!preg_match('#^https://#i', $webhook) || $blockedHost) {
     http_response_code(500);
     echo json_encode(['error' => 'Webhook chat mal configuré.']);
     exit;

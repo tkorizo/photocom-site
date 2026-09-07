@@ -116,6 +116,23 @@ class Database
             FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
         )');
 
+        $db->exec('CREATE TABLE IF NOT EXISTS customer_orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            reference TEXT NOT NULL UNIQUE,
+            status TEXT NOT NULL DEFAULT \'pending\',
+            items_json TEXT NOT NULL DEFAULT \'[]\',
+            total REAL NOT NULL DEFAULT 0,
+            customer_name TEXT,
+            customer_email TEXT,
+            customer_phone TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime(\'now\')),
+            updated_at TEXT NOT NULL DEFAULT (datetime(\'now\')),
+            FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+        )');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_customer_orders_customer ON customer_orders(customer_id, created_at)');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_customer_orders_status ON customer_orders(status)');
+
         self::addColumnIfMissing('articles', 'meta_title', 'TEXT');
         self::addColumnIfMissing('articles', 'meta_description', 'TEXT');
         self::addColumnIfMissing('articles', 'meta_keywords', 'TEXT');

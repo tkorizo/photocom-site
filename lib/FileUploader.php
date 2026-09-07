@@ -53,8 +53,7 @@ class FileUploader
             return $current;
         }
 
-        // Keep external URL if provided as current (hero remote video)
-        if ($current !== '' && (str_starts_with($current, 'http://') || str_starts_with($current, 'https://'))) {
+        if ($current !== '' && str_starts_with($current, 'https://')) {
             return $current;
         }
 
@@ -131,18 +130,43 @@ class FileUploader
 
     public static function deleteFile(?string $path): void
     {
-        if (!self::isLocalPath($path)) {
-            return;
-        }
-
-        $fullPath = ROOT_PATH . $path;
-        if (is_file($fullPath)) {
-            unlink($fullPath);
+        $resolved = self::resolveLocalFile($path);
+        if ($resolved !== null) {
+            unlink($resolved);
         }
     }
 
     public static function isLocalPath(?string $path): bool
     {
-        return is_string($path) && str_starts_with($path, '/uploads/');
+        if (!is_string($path) || $path === '') {
+            return false;
+        }
+        if (str_contains($path, "\0") || str_contains($path, '\\') || str_contains($path, '..')) {
+            return false;
+        }
+
+        return (bool) preg_match('#^/uploads/(products|categories|home|brands|articles)/[A-Za-z0-9._-]+$#', $path);
+    }
+
+    public static function resolveLocalFile(?string $path): ?string
+    {
+        if (!self::isLocalPath($path)) {
+            return null;
+        }
+        $full = ROOT_PATH . $path;
+        if (!is_file($full)) {
+            return null;
+        }
+        $realFile = realpath($full);
+        $realUploads = realpath(ROOT_PATH . '/uploads');
+        if ($realFile === false || $realUploads === false) {
+            return null;
+        }
+        $prefix = $realUploads . DIRECTORY_SEPARATOR;
+        if (!str_starts_with($realFile, $prefix)) {
+            return null;
+        }
+
+        return $realFile;
     }
 }

@@ -1,6 +1,9 @@
 .env
 .DS_Store
 database/photocom.sqlite
+
+# Rapports internes client — strictement local, jamais le site ni Git
+rapport/
 uploads/products/*
 !uploads/products/.gitkeep
 uploads/categories/*
@@ -9,3 +12,6 @@ uploads/articles/*
 !uploads/articles/.gitkeep
 storage/logs/*
 !storage/logs/.gitkeep
+storage/rate-limit/*
+!storage/rate-limit/.gitkeep
+!storage/rate-limit/.htaccess

@@ -14,7 +14,7 @@ if (!$page || !(int) ($page['is_published'] ?? 0)) {
     $pageContent = '<p>Cette page n\'existe pas ou n\'est plus disponible.</p>';
 } else {
     $pageTitle = $page['title'];
-    $pageContent = $page['content'] ?: '<p>Contenu en cours de rédaction.</p>';
+    $pageContent = Helpers::sanitizePublicHtml((string) ($page['content'] ?? '')) ?: '<p>Contenu en cours de rédaction.</p>';
 }
 ?>
 <!DOCTYPE html>
@@ -25,7 +25,7 @@ if (!$page || !(int) ($page['is_published'] ?? 0)) {
     <?php
     $seoTitle = $pageTitle;
     $seoDescription = '';
-    $seoRobots = (!$page || !(int) ($page['is_published'] ?? 0)) ? 'noindex,follow' : null;
+    $seoRobots = (!$page || !(int) ($page['is_published'] ?? 0)) ? 'noindex,follow' : 'index,follow';
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>

@@ -42,6 +42,13 @@ try {
             exit;
         }
 
+        $csrf = (string) ($payload['csrf'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''));
+        if (!Auth::verifyCsrf($csrf !== '' ? $csrf : null)) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'error' => 'csrf'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
         $local = is_array($payload['items'] ?? null) ? $payload['items'] : [];
         $mode = (string) ($payload['mode'] ?? 'merge');
 

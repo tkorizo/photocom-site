@@ -20,6 +20,7 @@ function adminIcon(string $name, int $size = 18): string
         'cookie' => '<circle cx="12" cy="12" r="8"/><circle cx="9" cy="10" r="0.9"/><circle cx="14" cy="9" r="0.9"/><circle cx="11" cy="14" r="0.9"/><circle cx="15" cy="13.5" r="0.9"/>',
         'chat' => '<path d="M5 5h14v10H9l-4 3.5V5z"/>',
         'user' => '<circle cx="12" cy="8" r="3.5"/><path d="M5 19.5c1.6-3.2 4-4.8 7-4.8s5.4 1.6 7 4.8"/>',
+        'bag' => '<path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V7a3 3 0 0 1 6 0v1"/>',
         'external' => '<path d="M10 5H5v14h14v-5"/><path d="M13 5h6v6M19 5 10 14"/>',
         'alert' => '<path d="M12 4 3.5 19h17L12 4z"/><path d="M12 10v4"/><circle cx="12" cy="16.5" r="0.8"/>',
         'percent' => '<path d="M6 18 18 6"/><circle cx="8" cy="8" r="2"/><circle cx="16" cy="16" r="2"/>',

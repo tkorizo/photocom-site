@@ -82,6 +82,41 @@ if ($heroImageMobile !== '') {
     $seoDescription = trim((string) ($site['seo_description'] ?? '')) ?: ($tagline ?? '');
     $seoKeywords = trim((string) ($site['seo_keywords'] ?? ''));
     $seoType = 'website';
+    $seoRobots = 'index,follow';
+    $seoImage = $heroImageDesktop !== '' ? $heroImageDesktop : $heroVideoPoster;
+    $seoJsonLdExtra = [];
+    if ($hasHeroVideo) {
+        $heroVideoSrc = $heroVideoDesktop !== '' ? $heroVideoDesktop : $heroVideoMobile;
+        $heroThumb = $heroImageDesktop !== '' ? $heroImageDesktop : $heroVideoPoster;
+        $seoJsonLdExtra[] = [
+            '@context' => 'https://schema.org',
+            '@type' => 'VideoObject',
+            'name' => trim((string) ($home['hero_title'] ?? '')) ?: $siteName,
+            'description' => $seoDescription !== '' ? $seoDescription : $siteName,
+            'thumbnailUrl' => $heroThumb !== '' ? Helpers::absoluteUrl($heroThumb) : Helpers::absoluteUrl('/assets/images/logo-photocom.png'),
+            'contentUrl' => Helpers::absoluteUrl($heroVideoSrc),
+            'uploadDate' => date('Y-m-d'),
+        ];
+    }
+    if ($isOn('conseils_enabled')) {
+        foreach ($blogVideos as $video) {
+            $ytId = SitemapBuilder::youtubeId((string) ($video['url'] ?? ''));
+            if ($ytId === null) {
+                continue;
+            }
+            $vTitle = trim((string) ($video['title'] ?? '')) ?: 'Vidéo PHOTOCOM';
+            $vDesc = trim((string) ($video['excerpt'] ?? '')) ?: $vTitle;
+            $seoJsonLdExtra[] = [
+                '@context' => 'https://schema.org',
+                '@type' => 'VideoObject',
+                'name' => $vTitle,
+                'description' => $vDesc,
+                'thumbnailUrl' => 'https://i.ytimg.com/vi/' . $ytId . '/hqdefault.jpg',
+                'embedUrl' => 'https://www.youtube.com/embed/' . $ytId,
+                'uploadDate' => date('Y-m-d'),
+            ];
+        }
+    }
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>

@@ -23,6 +23,7 @@ require __DIR__ . '/icons.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= Helpers::e($pageTitle ?? 'Dashboard') ?> — <?= Helpers::e($config['name']) ?></title>
+    <meta name="robots" content="noindex,nofollow">
     <?php if ($adminFavicon !== ''): ?>
         <link rel="icon" href="<?= Helpers::e($adminFavicon) ?>">
     <?php endif; ?>
@@ -102,6 +103,9 @@ require __DIR__ . '/icons.php';
                     </a>
                     <a href="/admin/clients/index.php" class="nav-item <?= $currentPage === 'customers' ? 'active' : '' ?>">
                         <span class="nav-icon"><?= adminIcon('user') ?></span> Comptes clients
+                    </a>
+                    <a href="/admin/clients/paniers.php" class="nav-item <?= $currentPage === 'customer-carts' ? 'active' : '' ?>">
+                        <span class="nav-icon"><?= adminIcon('bag') ?></span> Paniers clients
                     </a>
                     <?php if ($isSuperAdmin): ?>
                         <a href="/admin/settings/audit-log.php" class="nav-item <?= $currentPage === 'audit' ? 'active' : '' ?>">

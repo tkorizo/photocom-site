@@ -91,6 +91,137 @@ class CustomerCartRepository
         return array_values($map);
     }
 
+    public static function itemsCount(array $items): int
+    {
+        $n = 0;
+        foreach ($items as $item) {
+            if (self::isValidItem($item)) {
+                $n += (int) $item['qty'];
+            }
+        }
+
+        return $n;
+    }
+
+    public static function itemsTotal(array $items): float
+    {
+        $total = 0.0;
+        foreach ($items as $item) {
+            if (self::isValidItem($item)) {
+                $total += (float) $item['price'] * (int) $item['qty'];
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * Paniers non vides, avec infos client (dashboard admin).
+     *
+     * @return list<array{customer: array<string,mixed>, items: list<array<string,mixed>>, count: int, total: float, updated_at: string}>
+     */
+    public static function listNonEmpty(?int $limit = null): array
+    {
+        $sql = 'SELECT c.id, c.name, c.email, c.phone, c.is_active,
+                       cc.items_json, cc.updated_at AS cart_updated_at
+                FROM customer_carts cc
+                INNER JOIN customers c ON c.id = cc.customer_id
+                ORDER BY cc.updated_at DESC';
+
+        $rows = Database::getInstance()->query($sql)->fetchAll();
+        $out = [];
+        foreach ($rows as $row) {
+            $items = json_decode((string) ($row['items_json'] ?? '[]'), true);
+            $items = is_array($items) ? array_values(array_filter($items, [self::class, 'isValidItem'])) : [];
+            if ($items === []) {
+                continue;
+            }
+            $out[] = [
+                'customer' => [
+                    'id' => (int) $row['id'],
+                    'name' => (string) $row['name'],
+                    'email' => (string) $row['email'],
+                    'phone' => (string) ($row['phone'] ?? ''),
+                    'is_active' => (int) ($row['is_active'] ?? 0),
+                ],
+                'items' => $items,
+                'count' => self::itemsCount($items),
+                'total' => self::itemsTotal($items),
+                'updated_at' => (string) ($row['cart_updated_at'] ?? ''),
+            ];
+            if ($limit !== null && count($out) >= max(1, min(100, $limit))) {
+                break;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array<int, array{count: int, total: float, updated_at: string}>
+     */
+    public static function summariesByCustomerId(): array
+    {
+        $map = [];
+        foreach (self::listNonEmpty() as $cart) {
+            $id = (int) $cart['customer']['id'];
+            $map[$id] = [
+                'count' => (int) $cart['count'],
+                'total' => (float) $cart['total'],
+                'updated_at' => (string) $cart['updated_at'],
+            ];
+        }
+
+        return $map;
+    }
+
+    public static function countNonEmpty(): int
+    {
+        return count(self::listNonEmpty());
+    }
+
+    public static function whatsappDigits(?string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $phone) ?: '';
+        if ($digits === '') {
+            return '';
+        }
+        if (str_starts_with($digits, '00')) {
+            $digits = substr($digits, 2);
+        }
+        if (str_starts_with($digits, '0')) {
+            $digits = '212' . substr($digits, 1);
+        }
+
+        return $digits;
+    }
+
+    public static function contactMessage(array $customer, array $items): string
+    {
+        $name = trim((string) ($customer['name'] ?? ''));
+        $lines = [
+            'Bonjour' . ($name !== '' ? ' ' . $name : '') . ',',
+            '',
+            'Je vous contacte au sujet de votre panier PHOTOCOM :',
+            '',
+        ];
+        foreach ($items as $i => $item) {
+            if (!self::isValidItem($item)) {
+                continue;
+            }
+            $line = (float) $item['price'] * (int) $item['qty'];
+            $lines[] = ($i + 1) . '. ' . $item['name']
+                . ' × ' . (int) $item['qty']
+                . ' — ' . Helpers::formatPrice($line);
+        }
+        $lines[] = '';
+        $lines[] = 'Total : ' . Helpers::formatPrice(self::itemsTotal($items));
+        $lines[] = '';
+        $lines[] = 'Nous restons à votre disposition pour finaliser la commande.';
+
+        return implode("\n", $lines);
+    }
+
     /** @param mixed $item */
     public static function isValidItem($item): bool
     {

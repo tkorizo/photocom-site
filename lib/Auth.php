@@ -29,7 +29,7 @@ class Auth
             session_set_cookie_params([
                 'lifetime' => 0,
                 'path' => '/',
-                'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+                'secure' => self::isHttps(),
                 'httponly' => true,
                 'samesite' => 'Strict',
             ]);
@@ -58,6 +58,22 @@ class Auth
         return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(self::csrfToken()) . '">';
     }
 
+    public static function isHttps(): bool
+    {
+        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+            return true;
+        }
+        if ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443) {
+            return true;
+        }
+        $proto = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+        if ($proto === 'https') {
+            return true;
+        }
+
+        return false;
+    }
+
     public static function attempt(string $email, string $password): bool
     {
         self::startSession();
@@ -72,8 +88,11 @@ class Auth
 
         if (!$user || !password_verify($password, $user['password_hash'])) {
             self::recordFailedAttempt();
+            RateLimiter::fail('login', self::MAX_ATTEMPTS, self::LOCKOUT_SECONDS);
             return false;
         }
+
+        RateLimiter::reset('login');
 
         $role = UserRepository::normalizeRole((string) ($user['role'] ?? self::ROLE_CATALOG));
 
@@ -230,11 +249,12 @@ class Auth
     public static function lockoutRemaining(): int
     {
         self::startSession();
-        if (!isset($_SESSION['lockout_until'])) {
-            return 0;
+        $sessionLeft = 0;
+        if (isset($_SESSION['lockout_until'])) {
+            $sessionLeft = max(0, (int) $_SESSION['lockout_until'] - time());
         }
 
-        return max(0, (int) $_SESSION['lockout_until'] - time());
+        return max($sessionLeft, RateLimiter::lockRemaining('login'));
     }
 
     private static function isLockedOut(): bool

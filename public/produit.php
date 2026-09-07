@@ -72,7 +72,39 @@ if ($productDescriptionHtml === '' && !$notFound) {
         : '';
     $seoImage = !$notFound ? trim((string) ($product['image'] ?? '')) : '';
     $seoType = 'product';
-    $seoRobots = $notFound ? 'noindex,follow' : null;
+    $seoRobots = $notFound ? 'noindex,follow' : 'index,follow';
+    if (!$notFound) {
+        $productAbsImages = [];
+        foreach ($galleryImages as $gallerySrc) {
+            $abs = Helpers::absoluteUrl((string) $gallerySrc);
+            if ($abs !== '') {
+                $productAbsImages[] = $abs;
+            }
+        }
+        $offerAvailability = ($isOut || $isComing)
+            ? 'https://schema.org/OutOfStock'
+            : 'https://schema.org/InStock';
+        $seoJsonLdExtra = [[
+            '@context' => 'https://schema.org',
+            '@type' => 'Product',
+            'name' => $product['name'],
+            'description' => $productExcerpt !== '' ? $productExcerpt : (string) $product['name'],
+            'sku' => trim((string) ($product['sku'] ?? '')) ?: null,
+            'image' => $productAbsImages !== [] ? $productAbsImages : null,
+            'brand' => trim((string) ($product['brand'] ?? '')) !== ''
+                ? ['@type' => 'Brand', 'name' => trim((string) $product['brand'])]
+                : null,
+            'offers' => [
+                '@type' => 'Offer',
+                'url' => Helpers::absoluteUrl(Helpers::productUrl($product)),
+                'priceCurrency' => 'MAD',
+                'price' => number_format((float) ($pricing['current'] ?? $product['price'] ?? 0), 2, '.', ''),
+                'availability' => $offerAvailability,
+                'itemCondition' => 'https://schema.org/NewCondition',
+            ],
+        ]];
+        $seoJsonLdExtra[0] = array_filter($seoJsonLdExtra[0], static fn ($v) => $v !== null && $v !== []);
+    }
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>

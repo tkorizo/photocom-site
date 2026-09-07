@@ -43,7 +43,7 @@ $activeNav = 'conseils';
     $seoImage = !$notFound ? trim((string) ($article['image'] ?? '')) : '';
     $seoCanonical = !$notFound ? trim((string) ($article['canonical_url'] ?? '')) : '';
     $seoType = 'article';
-    $seoRobots = $notFound ? 'noindex,follow' : null;
+    $seoRobots = $notFound ? 'noindex,follow' : 'index,follow';
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>
@@ -99,7 +99,7 @@ $activeNav = 'conseils';
                 <section class="editorial-section section-light article-body-section">
                     <div class="container">
                         <div class="article-body page-content-body">
-                            <?= $article['content'] ?: '<p>Contenu en cours de rédaction.</p>' ?>
+                            <?= Helpers::sanitizePublicHtml((string) ($article['content'] ?? '')) ?: '<p>Contenu en cours de rédaction.</p>' ?>
                         </div>
                     </div>
                 </section>

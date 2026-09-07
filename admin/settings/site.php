@@ -156,12 +156,13 @@ require dirname(__DIR__) . '/includes/header.php';
             <input type="text" name="seo_keywords" value="<?= Helpers::e($settings['seo_keywords']) ?>">
         </label>
         <div class="form-row">
-            <label>Robots
+            <label>Robots (défaut pages hors SEO)
                 <select name="seo_robots">
                     <?php foreach (['index,follow', 'noindex,follow', 'index,nofollow', 'noindex,nofollow'] as $robots): ?>
                         <option value="<?= $robots ?>" <?= ($settings['seo_robots'] ?? '') === $robots ? 'selected' : '' ?>><?= $robots ?></option>
                     <?php endforeach; ?>
                 </select>
+                <small class="field-hint">Indexées : accueil, catalogue, catégories, contact, à propos, conseils, fiches produits, articles, images et vidéos. Admin, panier et compte restent en noindex.</small>
             </label>
             <label>Type d’organisation (schema)
                 <select name="seo_organization_type">
@@ -211,7 +212,7 @@ require dirname(__DIR__) . '/includes/header.php';
                 </li>
             </ul>
             <p class="field-hint">
-                Le sitemap inclut automatiquement : accueil, catalogue, catégories, articles publiés et pages légales.
+                Le sitemap inclut : accueil, catalogue, catégories, contact, à propos, conseils, fiches produits (avec images), articles, pages légales et vidéos de l’accueil.
                 Vérifiez que l’URL du site ci-dessus est bien votre domaine de production (https://…).
             </p>
         </div>

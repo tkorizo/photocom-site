@@ -10,8 +10,9 @@
     # Point d'entrée mutualisé (Hostinger)
     DirectoryIndex index.php router.php
 
-    # Zones internes non accessibles via URL
-    RewriteRule ^(lib|database|storage|scripts|config|admin/includes)/ - [F,L]
+    # Zones internes non accessibles via URL (rapport = documents client, jamais publics)
+    RewriteRule ^(lib|database|storage|scripts|config|admin/includes|rapport)(/|$) - [F,L]
+    RewriteRule \.(sqlite|sqlite3|db|log|env)$ - [F,L]
 
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
@@ -36,6 +37,10 @@
 </FilesMatch>
 
 <FilesMatch "^(bootstrap\.php|\.env)$">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "\.(sqlite|sqlite3|db|log)$">
     Require all denied
 </FilesMatch>
 

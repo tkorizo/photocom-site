@@ -79,8 +79,13 @@
 
             fetch('/api/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify({ message: text }),
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-Token': (window.PHOTOCOM && window.PHOTOCOM.csrf) || '',
+                },
+                body: JSON.stringify({ message: text, csrf: (window.PHOTOCOM && window.PHOTOCOM.csrf) || '' }),
             })
                 .then(function (res) { return res.json(); })
                 .then(function (data) {

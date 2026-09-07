@@ -75,7 +75,28 @@ $queryParams = static function () use (
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?php
     $seoTitle = $pageTitle;
-    $seoDescription = $category['description'] ?? ('Catalogue ' . $siteName . ' — matériel photo et vidéo.');
+    $seoDescription = trim((string) ($category['description'] ?? '')) ?: ('Catalogue ' . $siteName . ' — matériel photo et vidéo.');
+    $hasExtraFilters = $searchQuery !== '' || $brandFilter !== '' || $minPrice !== '' || $maxPrice !== ''
+        || $onSaleOnly || $inStockOnly || $page > 1 || $sort !== 'name';
+    $invalidCategory = $catSlug !== '' && !$category;
+    $seoRobots = ($hasExtraFilters || $invalidCategory) ? 'noindex,follow' : 'index,follow';
+    $publicBase = rtrim((string) ($site['site_url'] ?: Helpers::config()['url']), '/');
+    if ($category && !$hasExtraFilters) {
+        $seoCanonical = $publicBase . '/catalogue.php?cat=' . rawurlencode($catSlug);
+        $seoImage = CategoryRepository::heroImage($category) ?: '';
+        $seoJsonLdExtra = [[
+            '@context' => 'https://schema.org',
+            '@type' => 'CollectionPage',
+            'name' => $pageTitle,
+            'url' => $seoCanonical,
+            'description' => $seoDescription,
+            'image' => $seoImage !== '' ? Helpers::absoluteUrl($seoImage, $publicBase) : null,
+            'isPartOf' => ['@type' => 'WebSite', 'name' => $siteName, 'url' => $publicBase],
+        ]];
+        $seoJsonLdExtra[0] = array_filter($seoJsonLdExtra[0], static fn ($v) => $v !== null && $v !== '');
+    } elseif (!$hasExtraFilters && !$invalidCategory) {
+        $seoCanonical = $publicBase . '/catalogue.php';
+    }
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>
@@ -90,8 +111,16 @@ $queryParams = static function () use (
     <section
         class="category-hero <?= $categoryHeroImage ? 'has-image' : 'is-fallback' ?>"
         aria-label="<?= Helpers::e($category['name']) ?>"
-        <?php if ($categoryHeroImage): ?>style="background-image: url('<?= Helpers::e($categoryHeroImage) ?>')"<?php endif; ?>
     >
+        <?php if ($categoryHeroImage): ?>
+            <img
+                class="category-hero-photo"
+                src="<?= Helpers::e($categoryHeroImage) ?>"
+                alt="<?= Helpers::e($category['name']) ?>"
+                width="1600"
+                height="500"
+            >
+        <?php endif; ?>
         <div class="category-hero-inner">
             <div class="container category-hero-content">
                 <span class="category-hero-label">Catalogue</span>

@@ -164,6 +164,7 @@
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
+                'X-CSRF-Token': (window.PHOTOCOM && window.PHOTOCOM.csrf) || '',
             },
             body: JSON.stringify({ mode: mode || 'replace', items: cart }),
         })

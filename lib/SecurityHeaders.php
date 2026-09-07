@@ -19,6 +19,11 @@ class SecurityHeaders
         header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
         header('X-XSS-Protection: 0');
 
+        $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+        if (str_starts_with($requestPath, '/admin')) {
+            header('X-Robots-Tag: noindex, nofollow');
+        }
+
         // CSP permissive pour le site actuel (inline styles admin + chat), à durcir ensuite.
         $csp = implode('; ', [
             "default-src 'self'",
@@ -35,8 +40,7 @@ class SecurityHeaders
         ]);
         header('Content-Security-Policy: ' . $csp);
 
-        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-            || ((int) ($_SERVER['SERVER_PORT'] ?? 0) === 443);
+        $https = Auth::isHttps();
         if ($https) {
             header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
         }

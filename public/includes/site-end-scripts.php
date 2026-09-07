@@ -7,4 +7,4 @@ declare(strict_types=1);
  * mega-menu + cart sont déjà en defer dans site-footer.php
  */
 ?>
-<script src="/assets/js/chat.js" defer></script>
+<script src="/assets/js/chat.js?v=<?= is_file(__DIR__ . '/../assets/js/chat.js') ? filemtime(__DIR__ . '/../assets/js/chat.js') : time() ?>" defer></script>

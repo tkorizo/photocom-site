@@ -45,16 +45,93 @@ class Helpers
             '/<a\s+href="([^"]*)">/i',
             static function (array $m): string {
                 $href = trim($m[1]);
-                if ($href === '' || preg_match('#^(https?:)?//|^/#i', $href) !== 1) {
+                if (!self::isSafePublicHref($href)) {
                     return '<a>';
                 }
 
-                return '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '">';
+                return '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '" rel="noopener noreferrer">';
             },
             $html
         ) ?? $html;
 
         return trim($html);
+    }
+
+    /** HTML public (articles, pages légales) : mêmes balises + images locales/https. */
+    public static function sanitizePublicHtml(?string $html): string
+    {
+        $html = trim((string) $html);
+        if ($html === '') {
+            return '';
+        }
+
+        $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $allowed = '<p><br><ul><ol><li><strong><b><em><i><a><h2><h3><h4><blockquote><img>';
+        $html = strip_tags($html, $allowed);
+        $html = preg_replace('/\s(?:style|class|lang|dir|id|target|rel)="[^"]*"/i', '', $html) ?? $html;
+        $html = preg_replace('/<(p|li|h2|h3|h4|ul|ol|strong|b|em|i|a|blockquote)\s*>/i', '<$1>', $html) ?? $html;
+        $html = preg_replace_callback(
+            '/<a\s+href="([^"]*)">/i',
+            static function (array $m): string {
+                $href = trim($m[1]);
+                if (!self::isSafePublicHref($href)) {
+                    return '<a>';
+                }
+
+                return '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '" rel="noopener noreferrer">';
+            },
+            $html
+        ) ?? $html;
+        $html = preg_replace_callback(
+            '/<img\b([^>]*)>/i',
+            static function (array $m): string {
+                $attrs = $m[1];
+                $src = '';
+                $alt = '';
+                if (preg_match('/\bsrc="([^"]*)"/i', $attrs, $sm)) {
+                    $src = trim(html_entity_decode($sm[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+                }
+                if (preg_match('/\balt="([^"]*)"/i', $attrs, $am)) {
+                    $alt = trim($am[1]);
+                }
+                if ($src === '' || !self::isSafePublicSrc($src)) {
+                    return '';
+                }
+
+                return '<img src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8') . '">';
+            },
+            $html
+        ) ?? $html;
+
+        return trim($html);
+    }
+
+    public static function isSafePublicHref(string $href): bool
+    {
+        $href = trim($href);
+        if ($href === '' || str_contains($href, "\0") || str_contains($href, '\\')) {
+            return false;
+        }
+        if (preg_match('#^(javascript|data|vbscript):#i', $href) === 1) {
+            return false;
+        }
+        if (str_starts_with($href, '//')) {
+            return false;
+        }
+        if (str_starts_with($href, '/') && !str_starts_with($href, '//')) {
+            return !str_contains($href, '..');
+        }
+
+        return preg_match('#^https://#i', $href) === 1;
+    }
+
+    public static function isSafePublicSrc(string $src): bool
+    {
+        if (str_starts_with($src, '/uploads/') && !str_contains($src, '..')) {
+            return true;
+        }
+
+        return preg_match('#^https://#i', $src) === 1 && !str_contains($src, '..');
     }
 
     /** Extrait texte brut pour résumé produit. */
@@ -89,6 +166,36 @@ class Helpers
         }
 
         return '/produit/' . rawurlencode($slug);
+    }
+
+    /** Transforme un chemin média (/uploads/…) en URL absolue https. */
+    public static function absoluteUrl(?string $url, ?string $base = null): string
+    {
+        $url = trim((string) $url);
+        if ($url === '') {
+            return '';
+        }
+        if (preg_match('#^https?://#i', $url) === 1) {
+            return $url;
+        }
+        if (str_starts_with($url, '//')) {
+            return 'https:' . $url;
+        }
+        if ($base === null) {
+            $site = SettingRepository::site();
+            $config = self::config();
+            $base = rtrim((string) ($site['site_url'] ?: ($config['url'] ?? '')), '/');
+        } else {
+            $base = rtrim($base, '/');
+        }
+        if ($base === '') {
+            return $url;
+        }
+        if (!str_starts_with($url, '/')) {
+            $url = '/' . $url;
+        }
+
+        return $base . $url;
     }
 
     /**
@@ -198,7 +305,18 @@ class Helpers
 
     public static function redirect(string $url): void
     {
-        header('Location: ' . $url);
+        $target = '/';
+        $url = trim($url);
+        if (
+            $url !== ''
+            && str_starts_with($url, '/')
+            && !str_starts_with($url, '//')
+            && !str_contains($url, '\\')
+            && preg_match('#[\x00-\x1F\x7F]#', $url) !== 1
+        ) {
+            $target = $url;
+        }
+        header('Location: ' . $target, true, 302);
         exit;
     }
 

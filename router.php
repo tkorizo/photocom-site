@@ -5,6 +5,18 @@ declare(strict_types=1);
 $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $root = __DIR__;
 
+// Dossier rapport : interne uniquement, jamais servi même s’il est présent par erreur
+if (
+    preg_match('#^/rapport(/|$)#i', $uri)
+    || preg_match('#^/(lib|database|storage|scripts|config)(/|$)#i', $uri)
+    || preg_match('#\.(sqlite3?|db|log|env)$#i', $uri)
+) {
+    http_response_code(403);
+    header('X-Robots-Tag: noindex, nofollow');
+    echo '403';
+    return true;
+}
+
 // Fichiers statiques : assets
 if (str_starts_with($uri, '/assets/')) {
     $file = $root . '/public' . $uri;
@@ -127,6 +139,12 @@ if ($uri === '/mon-compte' || $uri === '/mon-compte.php') {
     return true;
 }
 
+if (preg_match('#^/mon-compte/commande/([A-Za-z0-9-]+)$#', $uri, $matches)) {
+    $_GET['ref'] = $matches[1];
+    require $root . '/public/compte-commande.php';
+    return true;
+}
+
 if ($uri === '/compte/deconnexion' || $uri === '/compte-logout.php') {
     require $root . '/public/compte-logout.php';
     return true;
@@ -153,6 +171,11 @@ if ($uri === '/api/search-suggest' || $uri === '/api/search-suggest.php') {
 // Panier client connecté
 if ($uri === '/api/cart' || $uri === '/api/cart.php') {
     require $root . '/public/api/cart.php';
+    return true;
+}
+
+if ($uri === '/api/order' || $uri === '/api/order.php') {
+    require $root . '/public/api/order.php';
     return true;
 }
 

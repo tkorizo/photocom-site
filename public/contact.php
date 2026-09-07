@@ -20,6 +20,7 @@ $waBase = 'https://wa.me/' . $waDigits;
     <?php
     $seoTitle = $pageTitle;
     $seoDescription = $contact['contact_seo_description'];
+    $seoRobots = 'index,follow';
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>

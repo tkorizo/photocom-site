@@ -108,6 +108,45 @@ a:hover { text-decoration: underline; }
     font-size: 1rem;
 }
 
+.login-honeypot {
+    position: absolute;
+    left: -10000px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.login-captcha {
+    margin-bottom: 1rem;
+}
+
+.login-captcha-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+}
+
+.login-captcha-img {
+    display: block;
+    width: 200px;
+    height: 58px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+}
+
+.login-captcha-reload {
+    font-size: 0.82rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.login-captcha-reload:hover {
+    color: var(--text);
+}
+
 /* Layout */
 .admin-layout { display: flex; min-height: 100vh; }
 
@@ -448,6 +487,13 @@ a:hover { text-decoration: underline; }
 }
 
 .data-table th { color: var(--muted); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
+
+.table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
 
 .thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; background: var(--bg); }
 .thumb-placeholder { color: var(--muted); }

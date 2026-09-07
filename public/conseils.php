@@ -25,6 +25,7 @@ $activeNav = 'conseils';
     <?php
     $seoTitle = $pageTitle;
     $seoDescription = $cp['conseils_page_seo_description'];
+    $seoRobots = 'index,follow';
     require __DIR__ . '/includes/site-seo.php';
     ?>
     <?php require __DIR__ . '/includes/site-favicon.php'; ?>
