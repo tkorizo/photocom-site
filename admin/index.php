@@ -22,8 +22,9 @@ $user = Auth::user();
 $articleCount = $canContent ? ArticleRepository::countPublished() : 0;
 $siteSettings = $isAdmin ? SettingRepository::site() : [];
 $chatSettings = $isAdmin ? SettingRepository::chat() : [];
-$recentCarts = $isAdmin ? CustomerCartRepository::listNonEmpty(5) : [];
-$cartCount = $isAdmin ? CustomerCartRepository::countNonEmpty() : 0;
+$recentCarts = $canCatalog ? CustomerCartRepository::listNonEmpty(5) : [];
+$cartCount = $canCatalog ? CustomerCartRepository::countNonEmpty() : 0;
+$customerCount = $canCatalog ? CustomerRepository::count() : 0;
 
 require __DIR__ . '/includes/header.php';
 ?>
@@ -48,7 +49,7 @@ require __DIR__ . '/includes/header.php';
             <?php elseif ($canContent): ?>
                 gestion des articles du blog Conseils.
             <?php else: ?>
-                gestion du catalogue produits.
+                gestion du catalogue, des comptes et des paniers clients.
             <?php endif; ?>
         </p>
     </div>
@@ -96,6 +97,14 @@ require __DIR__ . '/includes/header.php';
         </div>
         <small>Produits en promo</small>
     </a>
+    <a href="/admin/clients/index.php" class="dash-stat-card dash-stat-neutral">
+        <span class="dash-stat-icon"><?= adminIcon('user', 20) ?></span>
+        <div>
+            <strong><?= (int) $customerCount ?></strong>
+            <span>Comptes clients</span>
+        </div>
+        <small><?= (int) $cartCount ?> panier<?= $cartCount > 1 ? 's' : '' ?> en cours</small>
+    </a>
     <?php if ($canContent): ?>
     <a href="/admin/articles/index.php" class="dash-stat-card dash-stat-accent">
         <span class="dash-stat-icon"><?= adminIcon('pen', 20) ?></span>
@@ -133,6 +142,16 @@ require __DIR__ . '/includes/header.php';
                 <span class="module-icon"><?= adminIcon('layers') ?></span>
                 <h4>Catégories</h4>
                 <p>Organiser la hiérarchie et les visuels.</p>
+            </a>
+            <a href="/admin/clients/index.php" class="module-card">
+                <span class="module-icon"><?= adminIcon('user') ?></span>
+                <h4>Comptes clients</h4>
+                <p><?= (int) $customerCount ?> compte<?= $customerCount > 1 ? 's' : '' ?> — consulter et contacter.</p>
+            </a>
+            <a href="/admin/clients/paniers.php" class="module-card">
+                <span class="module-icon module-icon-accent"><?= adminIcon('bag') ?></span>
+                <h4>Paniers clients</h4>
+                <p><?= (int) $cartCount ?> panier<?= $cartCount > 1 ? 's' : '' ?> en cours — relancer par WhatsApp ou e-mail.</p>
             </a>
             <?php if (!$isAdmin): ?>
                 <a href="/admin/produits/create.php" class="module-card">
@@ -208,11 +227,6 @@ require __DIR__ . '/includes/header.php';
                 <span class="module-icon"><?= adminIcon('user') ?></span>
                 <h4>Utilisateurs</h4>
                 <p>Rôles et accès de l’équipe.</p>
-            </a>
-            <a href="/admin/clients/paniers.php" class="module-card">
-                <span class="module-icon module-icon-accent"><?= adminIcon('bag') ?></span>
-                <h4>Paniers clients</h4>
-                <p><?= $cartCount ?> panier<?= $cartCount > 1 ? 's' : '' ?> en cours — relancer par WhatsApp ou e-mail.</p>
             </a>
             <?php if ($isSuperAdmin): ?>
                 <a href="/admin/settings/audit-log.php" class="module-card">
@@ -302,7 +316,7 @@ require __DIR__ . '/includes/header.php';
 </div>
 <?php endif; ?>
 
-<?php if ($isAdmin): ?>
+<?php if ($canCatalog): ?>
 <section class="panel panel-modern" style="margin-top:1.5rem">
     <div class="panel-header">
         <h2>Paniers clients</h2>

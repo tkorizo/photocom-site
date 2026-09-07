@@ -51,7 +51,7 @@ class UserRepository
     {
         return [
             Auth::ROLE_CONTENT => 'Gestion de contenu — articles et pages',
-            Auth::ROLE_CATALOG => 'Gestion de produits — catalogue complet',
+            Auth::ROLE_CATALOG => 'Gestion de produits — catalogue, comptes et paniers clients',
             Auth::ROLE_EDITOR => 'Éditeur — catalogue et contenu',
             Auth::ROLE_ADMIN => 'Administrateur — accès complet',
         ];

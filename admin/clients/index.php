@@ -3,8 +3,9 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/bootstrap.php';
-Auth::requireAdmin();
+Auth::requireCatalog();
 Database::migrate();
+$isAdmin = Auth::isAdmin();
 
 $pageTitle = 'Comptes clients';
 $currentPage = 'customers';
@@ -13,6 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
         Helpers::flash('error', 'Session expirée.');
         Helpers::redirect('/admin/clients/index.php');
+    }
+
+    if (!Auth::isAdmin()) {
+        Helpers::flash('error', 'Seuls les administrateurs peuvent modifier un compte client.');
+        Helpers::redirect('/admin/clients/index.php' . (!empty($_GET['q']) ? '?q=' . rawurlencode((string) $_GET['q']) : ''));
     }
 
     $action = (string) ($_POST['action'] ?? '');
@@ -132,18 +138,20 @@ require dirname(__DIR__) . '/includes/header.php';
                         <td><?= Helpers::e(substr((string) $c['created_at'], 0, 16)) ?></td>
                         <td class="table-actions">
                             <a href="/admin/clients/panier.php?id=<?= $cid ?>" class="btn btn-sm">Panier</a>
-                            <form method="post" style="display:inline;">
-                                <?= Auth::csrfField() ?>
-                                <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
-                                <input type="hidden" name="action" value="toggle">
-                                <button type="submit" class="btn btn-sm"><?= $active ? 'Désactiver' : 'Réactiver' ?></button>
-                            </form>
-                            <form method="post" style="display:inline;" onsubmit="return confirm('Supprimer ce compte client ?');">
-                                <?= Auth::csrfField() ?>
-                                <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
-                                <input type="hidden" name="action" value="delete">
-                                <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
-                            </form>
+                            <?php if ($isAdmin): ?>
+                                <form method="post" style="display:inline;">
+                                    <?= Auth::csrfField() ?>
+                                    <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
+                                    <input type="hidden" name="action" value="toggle">
+                                    <button type="submit" class="btn btn-sm"><?= $active ? 'Désactiver' : 'Réactiver' ?></button>
+                                </form>
+                                <form method="post" style="display:inline;" onsubmit="return confirm('Supprimer ce compte client ?');">
+                                    <?= Auth::csrfField() ?>
+                                    <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
+                                    <input type="hidden" name="action" value="delete">
+                                    <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
+                                </form>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
