@@ -106,3 +106,22 @@
     if (prev) prev.addEventListener('click', function () { scrollBy(-scrollAmount); });
     if (next) next.addEventListener('click', function () { scrollBy(scrollAmount); });
 })();
+
+(function () {
+    document.querySelectorAll('[data-youtube-embed]').forEach(function (frame) {
+        var embed = frame.getAttribute('data-youtube-embed') || '';
+        if (!embed) return;
+        var play = frame.querySelector('.blog-video-play');
+        if (!play) return;
+        play.addEventListener('click', function () {
+            var iframe = document.createElement('iframe');
+            iframe.src = embed + (embed.indexOf('?') === -1 ? '?autoplay=1' : '&autoplay=1');
+            iframe.title = play.getAttribute('aria-label') || 'Vidéo YouTube';
+            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+            iframe.allowFullscreen = true;
+            iframe.setAttribute('allowfullscreen', '');
+            frame.classList.add('is-playing');
+            frame.appendChild(iframe);
+        });
+    });
+})();

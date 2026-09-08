@@ -157,6 +157,12 @@ class Auth
         return in_array(self::role(), [self::ROLE_CONTENT, self::ROLE_EDITOR, self::ROLE_ADMIN, self::ROLE_SUPER_ADMIN], true);
     }
 
+    /** Page d’accueil (éditeur, admin, super admin). */
+    public static function canManageHome(): bool
+    {
+        return in_array(self::role(), [self::ROLE_EDITOR, self::ROLE_ADMIN, self::ROLE_SUPER_ADMIN], true);
+    }
+
     public static function canManageUsers(): bool
     {
         return self::isAdmin();
@@ -210,6 +216,15 @@ class Auth
         self::requireLogin();
         if (!self::canManageContent()) {
             Helpers::flash('error', 'Accès réservé à la gestion du contenu.');
+            Helpers::redirect('/admin/index.php');
+        }
+    }
+
+    public static function requireHome(): void
+    {
+        self::requireLogin();
+        if (!self::canManageHome()) {
+            Helpers::flash('error', 'Accès réservé à la configuration de la page d’accueil.');
             Helpers::redirect('/admin/index.php');
         }
     }

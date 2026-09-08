@@ -26,16 +26,59 @@ class Helpers
     }
 
     /**
-     * Nettoie le HTML produit (imports WP / traductions) pour un affichage sûr et lisible.
+     * Décode les entités HTML importées (&nbsp; &#8217; &amp;…).
      */
-    public static function sanitizeProductHtml(?string $html): string
+    public static function decodeHtmlEntities(?string $text): string
     {
-        $html = trim((string) $html);
+        $out = (string) $text;
+        $prev = null;
+        for ($i = 0; $i < 3 && $out !== $prev; $i++) {
+            $prev = $out;
+            $out = html_entity_decode($out, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        return str_replace("\u{00A0}", ' ', $out);
+    }
+
+    /** True si le texte contient des balises de mise en forme. */
+    public static function containsHtml(?string $html): bool
+    {
+        return (bool) preg_match('/<(p|br|ul|ol|li|strong|b|em|i|a|h[2-4]|div)(\s|\/|>)/i', (string) $html);
+    }
+
+    /** Texte lisible : sans codes HTML, apostrophes et espaces normaux. */
+    public static function plainTextFromHtml(?string $html, bool $keepNewlines = false): string
+    {
+        $html = self::decodeHtmlEntities(trim((string) $html));
         if ($html === '') {
             return '';
         }
 
-        $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $html = preg_replace('/<\s*br\s*\/?\s*>/i', "\n", $html) ?? $html;
+        $html = preg_replace('/<\/(p|div|h[1-6]|li|tr)>/i', "\n", $html) ?? $html;
+        $html = strip_tags($html);
+        $html = self::decodeHtmlEntities($html);
+
+        if ($keepNewlines) {
+            $html = preg_replace('/[ \t]+/u', ' ', $html) ?? $html;
+            $html = preg_replace("/\n{3,}/", "\n\n", $html) ?? $html;
+
+            return trim($html);
+        }
+
+        return trim(preg_replace('/\s+/u', ' ', $html) ?? '');
+    }
+
+    /**
+     * Nettoie le HTML produit (imports WP / traductions) pour un affichage sûr et lisible.
+     */
+    public static function sanitizeProductHtml(?string $html): string
+    {
+        $html = self::decodeHtmlEntities(trim((string) $html));
+        if ($html === '') {
+            return '';
+        }
+
         $allowed = '<p><br><ul><ol><li><strong><b><em><i><a><h2><h3><h4>';
         $html = strip_tags($html, $allowed);
         $html = preg_replace('/\s(?:style|class|lang|dir|id|target|rel)="[^"]*"/i', '', $html) ?? $html;
@@ -137,7 +180,7 @@ class Helpers
     /** Extrait texte brut pour résumé produit. */
     public static function productExcerpt(?string $text, int $maxLen = 280): string
     {
-        $plain = trim(preg_replace('/\s+/u', ' ', strip_tags((string) $text)) ?? '');
+        $plain = self::plainTextFromHtml($text, false);
         if ($plain === '') {
             return '';
         }

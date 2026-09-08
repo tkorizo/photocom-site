@@ -52,12 +52,18 @@ $productExcerpt = !$notFound
 if ($productExcerpt === '' && !$notFound) {
     $productExcerpt = Helpers::productExcerpt($product['description'] ?? '', 320);
 }
-$productDescriptionHtml = !$notFound
-    ? Helpers::sanitizeProductHtml($product['description'] ?? '')
-    : '';
-if ($productDescriptionHtml === '' && !$notFound) {
-    $plainShort = Helpers::productExcerpt($product['short_description'] ?? '', 2000);
-    $productDescriptionHtml = $plainShort !== '' ? '<p>' . Helpers::e($plainShort) . '</p>' : '';
+$productDescriptionHtml = '';
+if (!$notFound) {
+    $rawDescription = (string) ($product['description'] ?? '');
+    if (Helpers::containsHtml($rawDescription)) {
+        $productDescriptionHtml = Helpers::sanitizeProductHtml($rawDescription);
+    } else {
+        $plainLong = Helpers::plainTextFromHtml($rawDescription, true);
+        if ($plainLong === '') {
+            $plainLong = Helpers::plainTextFromHtml((string) ($product['short_description'] ?? ''), true);
+        }
+        $productDescriptionHtml = $plainLong !== '' ? '<p>' . Helpers::multiline($plainLong) . '</p>' : '';
+    }
 }
 ?>
 <!DOCTYPE html>

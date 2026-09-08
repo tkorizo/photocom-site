@@ -192,14 +192,32 @@ require_once dirname(__DIR__) . '/includes/category_picker.php';
         </div>
 
         <h3 class="form-section">Descriptions</h3>
-        <label>
-            Description courte
-            <textarea name="short_description" rows="4"><?= Helpers::e($product['short_description'] ?? $_POST['short_description'] ?? '') ?></textarea>
-        </label>
-        <label>
-            Description complète (HTML accepté)
-            <textarea name="description" rows="10"><?= Helpers::e($product['description'] ?? $_POST['description'] ?? '') ?></textarea>
-        </label>
+        <?php
+        $shortRaw = (string) ($product['short_description'] ?? $_POST['short_description'] ?? '');
+        $longRaw = (string) ($product['description'] ?? $_POST['description'] ?? '');
+        $shortHtmlMode = (($_POST['short_description_html'] ?? '') === '1');
+        $longHtmlMode = (($_POST['description_html'] ?? '') === '1');
+        $shortPlain = Helpers::plainTextFromHtml($shortRaw, true);
+        $longPlain = Helpers::plainTextFromHtml($longRaw, true);
+        ?>
+        <div class="desc-field" data-desc-field>
+            <div class="desc-field-head">
+                <span>Description courte</span>
+                <button type="button" class="btn btn-sm desc-html-btn" data-desc-html-toggle aria-pressed="false">Écrire en HTML</button>
+            </div>
+            <textarea name="short_description" rows="4" data-desc-input data-plain="<?= Helpers::e($shortPlain) ?>" data-html="<?= Helpers::e($shortRaw) ?>"><?= Helpers::e($shortHtmlMode ? $shortRaw : $shortPlain) ?></textarea>
+            <input type="hidden" name="short_description_html" value="<?= $shortHtmlMode ? '1' : '0' ?>" data-desc-html-flag>
+            <small class="field-hint">Texte standard. Le bouton HTML n’est utile que pour du gras, des listes ou des liens.</small>
+        </div>
+        <div class="desc-field" data-desc-field>
+            <div class="desc-field-head">
+                <span>Description complète</span>
+                <button type="button" class="btn btn-sm desc-html-btn" data-desc-html-toggle aria-pressed="false">Écrire en HTML</button>
+            </div>
+            <textarea name="description" rows="10" data-desc-input data-plain="<?= Helpers::e($longPlain) ?>" data-html="<?= Helpers::e($longRaw) ?>"><?= Helpers::e($longHtmlMode ? $longRaw : $longPlain) ?></textarea>
+            <input type="hidden" name="description_html" value="<?= $longHtmlMode ? '1' : '0' ?>" data-desc-html-flag>
+            <small class="field-hint">Par défaut le HTML importé (&amp;nbsp;, &amp;#8217;…) est affiché en texte normal.</small>
+        </div>
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Enregistrer</button>
@@ -367,5 +385,26 @@ require_once dirname(__DIR__) . '/includes/category_picker.php';
         });
     }
     validatePromoPrice();
+})();
+
+(function () {
+    document.querySelectorAll('[data-desc-field]').forEach(function (field) {
+        var btn = field.querySelector('[data-desc-html-toggle]');
+        var input = field.querySelector('[data-desc-input]');
+        var flag = field.querySelector('[data-desc-html-flag]');
+        if (!btn || !input || !flag) return;
+
+        btn.addEventListener('click', function () {
+            var on = flag.value !== '1';
+            flag.value = on ? '1' : '0';
+            btn.classList.toggle('is-on', on);
+            btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            btn.textContent = on ? 'Texte standard' : 'Écrire en HTML';
+        });
+
+        if (flag.value === '1') {
+            btn.textContent = 'Texte standard';
+        }
+    });
 })();
 </script>

@@ -13,6 +13,7 @@
     # Zones internes non accessibles via URL (rapport = documents client, jamais publics)
     RewriteRule ^(lib|database|storage|scripts|config|admin/includes|rapport)(/|$) - [F,L]
     RewriteRule \.(sqlite|sqlite3|db|log|env)$ - [F,L]
+    RewriteRule ^(README\.md|README\.txt|CHANGELOG\.md|composer\.(json|lock))$ - [F,L]
 
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
@@ -36,7 +37,7 @@
     Require all denied
 </FilesMatch>
 
-<FilesMatch "^(bootstrap\.php|\.env)$">
+<FilesMatch "^(bootstrap\.php|\.env|README\.md|README\.txt|CHANGELOG\.md|composer\.json|composer\.lock)$">
     Require all denied
 </FilesMatch>
 

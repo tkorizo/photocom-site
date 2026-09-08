@@ -7,6 +7,7 @@ $user = Auth::user();
 $currentPage = $currentPage ?? '';
 $canCatalog = Auth::canManageCatalog();
 $canContent = Auth::canManageContent();
+$canManageHome = Auth::canManageHome();
 $isAdmin = Auth::isAdmin();
 $isSuperAdmin = Auth::isSuperAdmin();
 $homeSettings = SettingRepository::home();
@@ -66,7 +67,7 @@ require __DIR__ . '/icons.php';
 
                 <?php if ($canContent): ?>
                     <span class="nav-section">Contenu</span>
-                    <?php if ($isAdmin): ?>
+                    <?php if ($canManageHome): ?>
                         <a href="/admin/home/index.php" class="nav-item <?= $currentPage === 'home' ? 'active' : '' ?>">
                             <span class="nav-icon"><?= adminIcon('home') ?></span> Page d'accueil
                         </a>

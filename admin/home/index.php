@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/bootstrap.php';
-Auth::requireAdmin();
+Auth::requireHome();
 
 $pageTitle = 'Page d\'accueil';
 $currentPage = 'home';
@@ -103,6 +103,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
             }
             $payload['home_menu_items'] = SettingRepository::encodeMenuItems($menuDraft);
+
+            foreach (['home_blog_video_1', 'home_blog_video_2'] as $videoKey) {
+                $raw = trim((string) ($payload[$videoKey] ?? ''));
+                $embed = SitemapBuilder::youtubeEmbedUrl($raw);
+                $payload[$videoKey] = $embed ?? $raw;
+            }
 
             // Logos des marques (section accueil)
             foreach (BrandRepository::all() as $brandRow) {
@@ -764,11 +770,12 @@ require dirname(__DIR__) . '/includes/header.php';
                 </div>
                 <hr class="he-sep">
                 <p class="he-field-label">Vidéo 1</p>
-                <label>URL embed YouTube<input type="url" name="home_blog_video_1" value="<?= Helpers::e($home['home_blog_video_1']) ?>"></label>
+                <label>Lien YouTube<input type="url" name="home_blog_video_1" value="<?= Helpers::e($home['home_blog_video_1']) ?>" placeholder="https://www.youtube.com/watch?v=…"></label>
+                <p class="he-note-inline">Collez n’importe quel lien YouTube (watch, youtu.be, Shorts ou embed). L’aperçu s’affiche automatiquement.</p>
                 <label>Titre<input type="text" name="home_blog_title_1" value="<?= Helpers::e($home['home_blog_title_1']) ?>" data-bind="home_blog_title_1"></label>
                 <label>Description<input type="text" name="home_blog_excerpt_1" value="<?= Helpers::e($home['home_blog_excerpt_1']) ?>" data-bind="home_blog_excerpt_1"></label>
                 <p class="he-field-label">Vidéo 2</p>
-                <label>URL embed YouTube<input type="url" name="home_blog_video_2" value="<?= Helpers::e($home['home_blog_video_2']) ?>"></label>
+                <label>Lien YouTube<input type="url" name="home_blog_video_2" value="<?= Helpers::e($home['home_blog_video_2']) ?>" placeholder="https://www.youtube.com/watch?v=…"></label>
                 <label>Titre<input type="text" name="home_blog_title_2" value="<?= Helpers::e($home['home_blog_title_2']) ?>" data-bind="home_blog_title_2"></label>
                 <label>Description<input type="text" name="home_blog_excerpt_2" value="<?= Helpers::e($home['home_blog_excerpt_2']) ?>" data-bind="home_blog_excerpt_2"></label>
             </div>

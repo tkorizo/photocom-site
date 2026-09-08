@@ -28,8 +28,12 @@ class ProductForm
         $data = [
             'name' => trim($_POST['name'] ?? ''),
             'slug' => trim($_POST['slug'] ?? '') ?: null,
-            'description' => trim($_POST['description'] ?? ''),
-            'short_description' => trim($_POST['short_description'] ?? ''),
+            'description' => (($_POST['description_html'] ?? '') === '1')
+                ? trim((string) ($_POST['description'] ?? ''))
+                : Helpers::plainTextFromHtml((string) ($_POST['description'] ?? ''), true),
+            'short_description' => (($_POST['short_description_html'] ?? '') === '1')
+                ? trim((string) ($_POST['short_description'] ?? ''))
+                : Helpers::plainTextFromHtml((string) ($_POST['short_description'] ?? ''), true),
             'price' => (float) ($_POST['price'] ?? 0),
             'regular_price' => $_POST['regular_price'] !== '' ? (float) $_POST['regular_price'] : null,
             'sale_price' => $_POST['sale_price'] !== '' ? (float) $_POST['sale_price'] : null,

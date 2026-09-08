@@ -36,6 +36,7 @@ class SecurityHeaders
             "style-src 'self' 'unsafe-inline' https:",
             "script-src 'self' 'unsafe-inline' https:",
             "connect-src 'self' https:",
+            "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://www.google.com https://maps.google.com",
             "object-src 'none'",
         ]);
         header('Content-Security-Policy: ' . $csp);

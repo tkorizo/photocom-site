@@ -11,6 +11,7 @@ $currentPage = 'dashboard';
 
 $canCatalog = Auth::canManageCatalog();
 $canContent = Auth::canManageContent();
+$canManageHome = Auth::canManageHome();
 $isAdmin = Auth::isAdmin();
 $isSuperAdmin = Auth::isSuperAdmin();
 
@@ -197,12 +198,15 @@ require __DIR__ . '/includes/header.php';
             <?php endif; ?>
         <?php endif; ?>
 
-        <?php if ($isAdmin): ?>
+        <?php if ($canManageHome): ?>
             <a href="/admin/home/index.php" class="module-card">
                 <span class="module-icon"><?= adminIcon('home') ?></span>
                 <h4>Page d'accueil</h4>
                 <p>Hero, sections, vidéos, confiance et newsletter.</p>
             </a>
+        <?php endif; ?>
+
+        <?php if ($isAdmin): ?>
             <a href="/admin/pages/index.php" class="module-card">
                 <span class="module-icon"><?= adminIcon('doc') ?></span>
                 <h4>Pages légales</h4>

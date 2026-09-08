@@ -228,10 +228,28 @@ if ($heroImageMobile !== '') {
                 </header>
                 <div class="blog-videos-grid">
                     <?php foreach ($blogVideos as $video): ?>
-                        <?php if ($video['url'] === '') continue; ?>
+                        <?php
+                        $ytId = SitemapBuilder::youtubeId((string) ($video['url'] ?? ''));
+                        if ($ytId === null) {
+                            continue;
+                        }
+                        $ytThumb = SitemapBuilder::youtubeThumbUrl((string) $video['url']);
+                        $ytEmbed = SitemapBuilder::youtubeEmbedUrl((string) $video['url']);
+                        ?>
                         <article class="blog-video-card">
-                            <div class="blog-video-frame">
-                                <iframe src="<?= Helpers::e($video['url']) ?>" title="<?= Helpers::e($video['title']) ?>" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            <div class="blog-video-frame" data-youtube-embed="<?= Helpers::e((string) $ytEmbed) ?>">
+                                <img
+                                    src="<?= Helpers::e((string) $ytThumb) ?>"
+                                    alt="<?= Helpers::e((string) $video['title']) ?>"
+                                    class="blog-video-thumb"
+                                    width="640"
+                                    height="360"
+                                    loading="lazy"
+                                    decoding="async"
+                                >
+                                <button type="button" class="blog-video-play" aria-label="Lire la vidéo : <?= Helpers::e((string) $video['title']) ?>">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v14l11-7-11-7z"/></svg>
+                                </button>
                             </div>
                             <div class="blog-video-body">
                                 <h3><?= Helpers::e($video['title']) ?></h3>

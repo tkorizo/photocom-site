@@ -10,6 +10,7 @@ if (
     preg_match('#^/rapport(/|$)#i', $uri)
     || preg_match('#^/(lib|database|storage|scripts|config)(/|$)#i', $uri)
     || preg_match('#\.(sqlite3?|db|log|env)$#i', $uri)
+    || preg_match('#^/(README\.(md|txt)|CHANGELOG\.md|composer\.(json|lock))$#i', $uri)
 ) {
     http_response_code(403);
     header('X-Robots-Tag: noindex, nofollow');

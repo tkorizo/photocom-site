@@ -388,11 +388,28 @@ class SitemapBuilder
         if ($url === '') {
             return null;
         }
-        if (preg_match('#(?:youtube\.com/(?:embed/|watch\?v=|shorts/)|youtu\.be/)([A-Za-z0-9_-]{11})#', $url, $m)) {
+        if (preg_match('#^[A-Za-z0-9_-]{11}$#', $url)) {
+            return $url;
+        }
+        if (preg_match('~(?:youtube(?:-nocookie)?\\.com/(?:embed/|shorts/|live/|.*[?&]v=)|youtu\\.be/)([A-Za-z0-9_-]{11})~i', $url, $m)) {
             return $m[1];
         }
 
         return null;
+    }
+
+    public static function youtubeEmbedUrl(string $url): ?string
+    {
+        $id = self::youtubeId($url);
+
+        return $id !== null ? 'https://www.youtube-nocookie.com/embed/' . $id : null;
+    }
+
+    public static function youtubeThumbUrl(string $url): ?string
+    {
+        $id = self::youtubeId($url);
+
+        return $id !== null ? 'https://i.ytimg.com/vi/' . $id . '/hqdefault.jpg' : null;
     }
 
     /** @param list<array{loc:string,title?:string}> $images */
