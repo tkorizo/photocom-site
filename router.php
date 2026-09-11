@@ -92,6 +92,30 @@ if (str_starts_with($uri, '/admin')) {
     }
 }
 
+$legacyMapFile = $root . '/config/legacy-redirects.php';
+if (is_file($legacyMapFile)) {
+    require_once $root . '/lib/LegacyRedirects.php';
+    /** @var array{exact?: array<string,string>, prefixes?: array<string,string>} $legacyMap */
+    $legacyMap = require $legacyMapFile;
+    LegacyRedirects::apply($uri, $legacyMap);
+}
+
+// Canonical : /produit/slug/ → /produit/slug (Google indexe souvent le slash final)
+if ($uri !== '/' && str_ends_with($uri, '/')) {
+    $canonical = rtrim($uri, '/') ?: '/';
+    $query = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_QUERY);
+    $target = $canonical . (is_string($query) && $query !== '' ? '?' . $query : '');
+    if (
+        str_starts_with($target, '/')
+        && !str_starts_with($target, '//')
+        && !str_contains($target, '\\')
+    ) {
+        header('Location: ' . $target, true, 301);
+        header('X-Robots-Tag: noindex, follow');
+        exit;
+    }
+}
+
 // Catalogue
 if ($uri === '/catalogue.php' || $uri === '/catalogue') {
     require $root . '/public/catalogue.php';

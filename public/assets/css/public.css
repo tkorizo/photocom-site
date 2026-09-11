@@ -4669,6 +4669,40 @@ body.page-home .brand-block:hover {
     color: #6b7280;
 }
 
+.contact-wa-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.contact-wa-label {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.4rem;
+    text-transform: uppercase;
+}
+
+.contact-wa-icon {
+    width: 1.15em;
+    height: 1.15em;
+    color: var(--whatsapp);
+    flex-shrink: 0;
+}
+
+.contact-wa-number {
+    margin: -0.35rem 0 0.9rem !important;
+    font-weight: 700;
+}
+
+.contact-wa-number a {
+    color: var(--text-dark);
+    text-decoration: none;
+}
+
+.contact-wa-number a:hover {
+    color: var(--whatsapp);
+}
+
 .contact-info-list span,
 .contact-info-list a {
     color: var(--text-dark);

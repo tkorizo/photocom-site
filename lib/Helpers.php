@@ -200,6 +200,39 @@ class Helpers
         return number_format($price, 2, ',', ' ') . ' MAD TTC';
     }
 
+    /** Affichage lisible d’un numéro WhatsApp ou téléphone. */
+    public static function formatPhoneDisplay(?string $value): string
+    {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return '';
+        }
+        if (preg_match('/\s/', $raw) === 1) {
+            return $raw;
+        }
+        $digits = preg_replace('/\D+/', '', $raw) ?: '';
+        if ($digits === '') {
+            return $raw;
+        }
+        if (str_starts_with($digits, '212') && strlen($digits) === 12) {
+            $national = substr($digits, 3);
+            $first = $national[0];
+            if ($first === '6' || $first === '7') {
+                return '+212 ' . $first . ' '
+                    . substr($national, 1, 2) . ' '
+                    . substr($national, 3, 2) . ' '
+                    . substr($national, 5, 2) . ' '
+                    . substr($national, 7, 2);
+            }
+
+            return '+212 ' . substr($national, 0, 3) . ' '
+                . substr($national, 3, 3) . ' '
+                . substr($national, 6, 3);
+        }
+
+        return '+' . ltrim($digits, '+');
+    }
+
     /** URL publique de la fiche produit. */
     public static function productUrl(array $product): string
     {
