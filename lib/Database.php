@@ -133,6 +133,37 @@ class Database
         $db->exec('CREATE INDEX IF NOT EXISTS idx_customer_orders_customer ON customer_orders(customer_id, created_at)');
         $db->exec('CREATE INDEX IF NOT EXISTS idx_customer_orders_status ON customer_orders(status)');
 
+        $db->exec('CREATE TABLE IF NOT EXISTS chat_conversations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL UNIQUE,
+            page_url TEXT,
+            language TEXT,
+            message_count INTEGER NOT NULL DEFAULT 0,
+            last_message_at TEXT,
+            visitor_ip TEXT,
+            visitor_country TEXT,
+            visitor_city TEXT,
+            visitor_user_agent TEXT,
+            visitor_meta TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
+        )');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_chat_conversations_last ON chat_conversations(last_message_at)');
+        self::addColumnIfMissing('chat_conversations', 'visitor_ip', 'TEXT');
+        self::addColumnIfMissing('chat_conversations', 'visitor_country', 'TEXT');
+        self::addColumnIfMissing('chat_conversations', 'visitor_city', 'TEXT');
+        self::addColumnIfMissing('chat_conversations', 'visitor_user_agent', 'TEXT');
+        self::addColumnIfMissing('chat_conversations', 'visitor_meta', 'TEXT');
+        $db->exec('CREATE TABLE IF NOT EXISTS chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversation_id INTEGER NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            products_json TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime(\'now\')),
+            FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id) ON DELETE CASCADE
+        )');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation ON chat_messages(conversation_id, id)');
+
         self::addColumnIfMissing('articles', 'meta_title', 'TEXT');
         self::addColumnIfMissing('articles', 'meta_description', 'TEXT');
         self::addColumnIfMissing('articles', 'meta_keywords', 'TEXT');
@@ -257,10 +288,7 @@ class Database
             'address' => $config['address'],
             'hours' => $config['hours'],
             'founded' => $config['founded'],
-            'chat_enabled' => '0',
-            'chat_n8n_webhook' => '',
-            'chat_welcome_message' => 'Bonjour ! Comment pouvons-nous vous aider ?',
-            'chat_offline_message' => 'Nous vous répondrons dès que possible.',
+            ...SettingRepository::chatDefaults(),
             ...SettingRepository::cookieDefaults(),
             ...SettingRepository::homeDefaults(),
         ];
@@ -273,6 +301,8 @@ class Database
                 $insert->execute(['key' => $key, 'value' => $value]);
             }
         }
+
+        SettingRepository::applyChatPlaybook();
     }
 
     private static function addColumnIfMissing(string $table, string $column, string $definition): void

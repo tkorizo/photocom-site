@@ -28,7 +28,7 @@ require __DIR__ . '/icons.php';
     <?php if ($adminFavicon !== ''): ?>
         <link rel="icon" href="<?= Helpers::e($adminFavicon) ?>">
     <?php endif; ?>
-    <link rel="stylesheet" href="/assets/css/admin.css">
+    <link rel="stylesheet" href="/assets/css/admin.css?v=<?= (int) (@filemtime(ROOT_PATH . '/public/assets/css/admin.css') ?: time()) ?>">
     <script src="/assets/js/image-upload.js" defer></script>
     <script src="/assets/js/search-suggest.js" defer></script>
 </head>
@@ -103,7 +103,7 @@ require __DIR__ . '/icons.php';
                         <span class="nav-icon"><?= adminIcon('cookie') ?></span> Cookies
                     </a>
                     <a href="/admin/chat/index.php" class="nav-item <?= $currentPage === 'chat' ? 'active' : '' ?>">
-                        <span class="nav-icon"><?= adminIcon('chat') ?></span> Chat (n8n)
+                        <span class="nav-icon"><?= adminIcon('chat') ?></span> Agent de chat
                     </a>
                     <a href="/admin/users/index.php" class="nav-item <?= $currentPage === 'users' ? 'active' : '' ?>">
                         <span class="nav-icon"><?= adminIcon('user') ?></span> Utilisateurs

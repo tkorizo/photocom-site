@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+Auth::startSession();
+Auth::csrfToken();
+
 $config = Helpers::config();
 $site = SettingRepository::site();
 $home = SettingRepository::home();

@@ -12,27 +12,21 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Anti-abus simple (session)
 Auth::startSession();
-$now = time();
-$window = 60;
-$maxHits = 20;
-$hits = $_SESSION['chat_hits'] ?? ['start' => $now, 'count' => 0];
-if (($now - (int) $hits['start']) > $window) {
-    $hits = ['start' => $now, 'count' => 0];
-}
-$hits['count'] = (int) $hits['count'] + 1;
-$_SESSION['chat_hits'] = $hits;
-if ($hits['count'] > $maxHits) {
-    http_response_code(429);
-    echo json_encode(['error' => 'Trop de requêtes. Réessayez dans une minute.']);
-    exit;
-}
-
 $payload = json_decode(file_get_contents('php://input') ?: '', true);
 if (!is_array($payload)) {
     http_response_code(400);
     echo json_encode(['error' => 'Requête invalide']);
+    exit;
+}
+
+$sessionId = ChatConversationRepository::normalizeSessionId((string) ($payload['session_id'] ?? ''));
+if (ChatGuard::isBlocked($sessionId) || ChatGuard::honeypotFilled($payload)) {
+    if (ChatGuard::honeypotFilled($payload)) {
+        ChatGuard::block($sessionId);
+    }
+    http_response_code(423);
+    echo json_encode(['blocked' => true, 'session_id' => $sessionId, 'reply' => '']);
     exit;
 }
 
@@ -43,7 +37,16 @@ if (!Auth::verifyCsrf($csrf !== '' ? $csrf : null)) {
     exit;
 }
 
-if (!RateLimiter::allow('chat', 20, 60)) {
+$now = time();
+$window = 60;
+$maxHits = 8;
+$hits = $_SESSION['chat_hits'] ?? ['start' => $now, 'count' => 0];
+if (($now - (int) $hits['start']) > $window) {
+    $hits = ['start' => $now, 'count' => 0];
+}
+$hits['count'] = (int) $hits['count'] + 1;
+$_SESSION['chat_hits'] = $hits;
+if ($hits['count'] > $maxHits || !RateLimiter::allow('chat', 8, 60)) {
     http_response_code(429);
     echo json_encode(['error' => 'Trop de requêtes. Réessayez dans une minute.']);
     exit;
@@ -51,70 +54,24 @@ if (!RateLimiter::allow('chat', 20, 60)) {
 
 $message = trim((string) ($payload['message'] ?? ''));
 $message = mb_substr(strip_tags($message), 0, 2000);
-
 if ($message === '') {
     http_response_code(422);
     echo json_encode(['error' => 'Message vide']);
     exit;
 }
 
-$chat = SettingRepository::chat();
-
-if ($chat['chat_enabled'] !== '1' || trim($chat['chat_n8n_webhook']) === '') {
-    echo json_encode([
-        'reply' => $chat['chat_offline_message'] ?: 'Merci pour votre message. Contactez-nous sur WhatsApp pour une réponse rapide.',
-    ]);
-    exit;
+$pageUrl = trim((string) ($payload['page_url'] ?? ''));
+if ($pageUrl !== '' && !str_starts_with($pageUrl, '/')) {
+    $path = parse_url($pageUrl, PHP_URL_PATH);
+    $pageUrl = is_string($path) && str_starts_with($path, '/') ? $path : '';
 }
+$pageUrl = mb_substr($pageUrl, 0, 500);
 
-$webhook = trim($chat['chat_n8n_webhook']);
-$host = strtolower((string) (parse_url($webhook, PHP_URL_HOST) ?? ''));
-$blockedHost = $host === ''
-    || $host === 'localhost'
-    || $host === '127.0.0.1'
-    || $host === '::1'
-    || str_ends_with($host, '.local')
-    || (
-        filter_var($host, FILTER_VALIDATE_IP) !== false
-        && filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false
-    );
-if (!preg_match('#^https://#i', $webhook) || $blockedHost) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Webhook chat mal configuré.']);
-    exit;
-}
+$clientHints = is_array($payload['visitor'] ?? null) ? $payload['visitor'] : [];
+$result = ChatAgent::reply($message, $sessionId, $pageUrl, $clientHints);
 
-$body = json_encode([
-    'message' => $message,
-    'source' => 'photocom-site',
-    'sent_at' => date('c'),
+echo json_encode([
+    'reply' => $result['reply'] ?? '',
+    'session_id' => $result['session_id'] ?? $sessionId,
+    'blocked' => !empty($result['blocked']),
 ], JSON_UNESCAPED_UNICODE);
-
-$ch = curl_init($webhook);
-curl_setopt_array($ch, [
-    CURLOPT_POST => true,
-    CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
-    CURLOPT_POSTFIELDS => $body,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 20,
-    CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
-    CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
-]);
-
-$response = curl_exec($ch);
-$status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-$reply = $chat['chat_offline_message'] ?: 'Message reçu. Nous vous répondrons très bientôt.';
-
-if ($response !== false && $status >= 200 && $status < 300) {
-    $decoded = json_decode($response, true);
-    if (is_array($decoded)) {
-        $reply = (string) ($decoded['reply'] ?? $decoded['message'] ?? $decoded['output'] ?? $reply);
-    } elseif (trim($response) !== '') {
-        $reply = trim($response);
-    }
-}
-
-$reply = mb_substr(strip_tags($reply), 0, 4000);
-echo json_encode(['reply' => $reply], JSON_UNESCAPED_UNICODE);

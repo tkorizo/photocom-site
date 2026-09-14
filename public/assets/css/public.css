@@ -197,11 +197,6 @@ a:hover { color: var(--primary-dark); }
 .hero-video-fallback p,
 .chat-bar,
 .chat-bar-label,
-.chat-panel-head,
-.chat-panel-head strong,
-.chat-panel-head span,
-.chat-panel-minimize,
-.chat-panel-minimize:hover,
 .chat-bubble--user,
 .chat-form button,
 .skip-link,
@@ -3020,7 +3015,6 @@ body.page-home .brand-block:hover {
 
 .chat-logo-img {
     width: 92px;
-    filter: brightness(1.05);
 }
 
 /* Best sellers compact grid */

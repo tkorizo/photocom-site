@@ -18,5 +18,7 @@ return [
     'address' => env('ADDRESS', '7 Allée de Persée, Boulevard Abdelmoumen, Casablanca'),
     'hours' => env('HOURS', "Lundi au vendredi : 9h00 – 13h00 / 15h00 – 19h00\nSamedi : 9h00 – 13h00\nRamadan : 10h00 – 17h00"),
     'founded' => env('FOUNDED', '2010'),
+    'openai_api_key' => env('OPENAI_API_KEY', ''),
+    'openai_model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
     'import_enabled' => false,
 ];

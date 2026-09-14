@@ -94,6 +94,14 @@ class RateLimiter
         }
     }
 
+    public static function lock(string $bucket, int $seconds): void
+    {
+        self::write($bucket, [
+            'fails' => 0,
+            'lock_until' => time() + max(60, $seconds),
+        ]);
+    }
+
     private static function isPublicIp(string $ip): bool
     {
         if ($ip === '' || filter_var($ip, FILTER_VALIDATE_IP) === false) {

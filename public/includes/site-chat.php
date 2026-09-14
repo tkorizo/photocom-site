@@ -32,7 +32,11 @@ declare(strict_types=1);
         </header>
         <div class="chat-messages" data-chat-messages role="log" aria-live="polite"></div>
         <form class="chat-form" data-chat-form>
-            <input type="text" name="message" placeholder="Écrivez votre message…" autocomplete="off" required maxlength="1000" aria-label="Votre message">
+            <label class="chat-honeypot" aria-hidden="true">
+                Site web
+                <input type="text" name="company_url" tabindex="-1" autocomplete="off">
+            </label>
+            <input type="text" name="message" placeholder="Écrivez votre message…" autocomplete="off" required maxlength="1000" aria-label="Votre message" dir="auto">
             <button type="submit" aria-label="Envoyer">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
             </button>

@@ -78,14 +78,76 @@ class SettingRepository
         return $data;
     }
 
-    public static function chat(): array
+    /** @return array<string, string> */
+    public static function chatDefaults(): array
     {
         return [
-            'chat_enabled' => self::get('chat_enabled', '0'),
-            'chat_n8n_webhook' => self::get('chat_n8n_webhook', ''),
-            'chat_welcome_message' => self::get('chat_welcome_message', 'Bonjour ! Comment pouvons-nous vous aider ?'),
-            'chat_offline_message' => self::get('chat_offline_message', 'Nous vous répondrons dès que possible.'),
+            'chat_enabled' => '0',
+            'chat_agent_name' => 'Conseiller PHOTOCOM',
+            'chat_openai_model' => 'gpt-4o-mini',
+            'chat_openai_api_key' => '',
+            'chat_temperature' => '0.4',
+            'chat_max_tokens' => '320',
+            'chat_history_limit' => '10',
+            'chat_product_limit' => '6',
+            'chat_include_prices' => '1',
+            'chat_include_stock' => '1',
+            'chat_multilingual' => '1',
+            'chat_welcome_message' => "Bonjour et bienvenue chez PHOTOCOM ! Que recherchez-vous ?\nVous pouvez aussi créer un compte ou vous connecter à votre espace : https://photocom.ma/compte",
+            'chat_offline_message' => 'Le conseiller catalogue est indisponible. Écrivez-nous sur WhatsApp pour une réponse commerciale.',
+            'chat_system_prompt' => "Tu es un conseiller commercial de PHOTOCOM à Casablanca.\nTu parles comme un vendeur : chaleureux, bref, utile. Tu n’es pas une IA.\n\nLONGUEUR\nRéponses COURTES. 1 phrase d’intro, puis des puces. Jamais un paragraphe long.\n\nMISE EN PAGE\nNom du produit sur une ligne (tu peux le mettre en **gras**), puis :\n- Prix : …\n- Dispo : …\n- Fiche : URL complète\nPas de lien Markdown [texte](url). Une ligne vide max.\n\nACCUEIL\nRends le salut DANS LA MÊME LANGUE, puis demande ce qu’il cherche, et propose le compte : https://photocom.ma/compte\nFrançais → Que recherchez-vous ?\nDarija latin (salam, labas, cv, wach) → darija (Salam, chno bghiti ?) — INTERDIT de basculer en français.\nArabe → arabe. Anglais → anglais.\n\nPRODUIT (obligatoire si le modèle est dans le contexte)\n- Montre-le TOUJOURS, même s’il est en rupture.\n- Donne TOUJOURS le prix du contexte (MAD TTC).\n- Recopie TOUJOURS le libellé Dispo du contexte (ex. « en rupture / à confirmer en magasin »).\n- Donne TOUJOURS le lien complet de la fiche (https://photocom.ma/produit/…).\n- 1 ou 2 points utiles max, tirés de la fiche.\n- Une question courte à la fin.\n\nPLUSIEURS PRODUITS\nUn bloc par produit, chacun avec prix + dispo + lien. Max 2 produits.\n\nRUPTURE\nCe n’est pas un refus. Tu présentes le produit avec sa dispo en rupture, puis tu peux proposer 1 alternative en stock EN PLUS.\n\nABSENT DU CATALOGUE\nProduit introuvable dans le contexte : une phrase. Alternative réelle du même type seulement, avec prix + dispo + lien. Sinon WhatsApp du contexte.\n\nINTERDIT\nInventer prix, stock, promo, produit, numéro. Cacher un produit du contexte parce qu’il est en rupture. Listes de liens sans prix.",
+            'chat_instruction_no_answer' => "Produit absent du contexte : une phrase. Alternative du même usage seulement, avec prix, dispo et lien. Un produit en rupture du contexte n’est PAS absent : tu l’affiches. Ne devine pas un délai, une remise ou une compatibilité.",
+            'chat_instruction_insult' => "Insulte : une phrase calme, tu restes dispo pour le matériel. Si ça continue : WhatsApp, stop.",
+            'chat_instruction_language' => "PRIORITÉ ABSOLUE : même langue que le dernier message visiteur.\nDarija en lettres latines (wach, bghit, kayn, 3and, 3afak, labas) → UNIQUEMENT du darija latin. INTERDIT le français.\nAlphabet arabe → UNIQUEMENT de l’arabe (darija ou arabe simple).\nFrançais → français. Anglais → anglais. Espagnol → espagnol.\nLes réponses assistant précédentes en français ne comptent pas : suis le dernier message.\nMarques, modèles, prix MAD, URLs et libellés Prix / Dispo / Fiche inchangés.",
+            'chat_instruction_handoff' => "Commande / devis / livraison : panier sur le site, ou WhatsApp du contexte. Court. Pas de remise inventée.",
+            'chat_instruction_extra' => "EXEMPLE DE FORMAT\nClient : Vous avez le BY-M1 ?\nToi :\nOui, le micro-cravate BY-M1 est au catalogue.\n**BOYA BY-M1**\n- Prix : 150,00 MAD TTC\n- Dispo : en stock / à confirmer en magasin\n- Fiche : https://photocom.ma/produit/micro-cravate-by-m1\nVous le voulez filaire, ou un modèle sans fil ?\n\nClient : Vous avez le Canon EOS 250D ?\nToi :\nOui, le Canon EOS 250D est au catalogue.\n**Canon EOS 250D avec objectif EF-S 18-55mm f/4-5.6 IS STM**\n- Prix : 8 000,00 MAD TTC\n- Dispo : en rupture / à confirmer en magasin\n- Fiche : https://photocom.ma/produit/canon-eos-250d-avec-objectif-ef-s-18-55mm-f-4-5-6-is-stm\nJe peux vous proposer une alternative en stock, ou confirmer un délai en magasin.\n\nClient : Bonjour !\nToi : Bonjour et bienvenue chez PHOTOCOM ! Que recherchez-vous ?\nVous pouvez aussi créer un compte ou vous connecter à votre espace : https://photocom.ma/compte\n\nClient : wach 3ndkom micro boya BY-M1 ?\nToi :\nWakha, kayn 3ndna.\n**BOYA BY-M1**\n- Prix : 150,00 MAD TTC\n- Dispo : en stock / à confirmer en magasin\n- Fiche : https://photocom.ma/produit/micro-cravate-by-m1\nBghitih filaire wla sans fil ?\n\nClient : salam labas\nToi : Salam labas, marhba bik f PHOTOCOM ! Chno bghiti ?\nT9der tcréé un compte wla tconnecta : https://photocom.ma/compte",
         ];
+    }
+
+    public const CHAT_PLAYBOOK_VERSION = 'cd-2026-09-14-darija-lang-1';
+
+    /** Applique le playbook commercial (sans toucher à la clé API ni à l’activation). */
+    public static function applyChatPlaybook(): void
+    {
+        if (self::get('chat_playbook_version') === self::CHAT_PLAYBOOK_VERSION) {
+            return;
+        }
+        $defaults = self::chatDefaults();
+        $keys = [
+            'chat_agent_name',
+            'chat_temperature',
+            'chat_max_tokens',
+            'chat_history_limit',
+            'chat_product_limit',
+            'chat_include_prices',
+            'chat_include_stock',
+            'chat_multilingual',
+            'chat_welcome_message',
+            'chat_offline_message',
+            'chat_system_prompt',
+            'chat_instruction_no_answer',
+            'chat_instruction_insult',
+            'chat_instruction_language',
+            'chat_instruction_handoff',
+            'chat_instruction_extra',
+        ];
+        $data = [];
+        foreach ($keys as $key) {
+            $data[$key] = (string) ($defaults[$key] ?? '');
+        }
+        self::setMany($data);
+        self::set('chat_playbook_version', self::CHAT_PLAYBOOK_VERSION);
+    }
+
+    public static function chat(): array
+    {
+        $defaults = self::chatDefaults();
+        $data = [];
+        foreach ($defaults as $key => $fallback) {
+            $data[$key] = self::get($key, $fallback) ?? $fallback;
+        }
+
+        return $data;
     }
 
     /** @return array<string, string> */

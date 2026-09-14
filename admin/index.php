@@ -224,8 +224,8 @@ require __DIR__ . '/includes/header.php';
             </a>
             <a href="/admin/chat/index.php" class="module-card">
                 <span class="module-icon"><?= adminIcon('chat') ?></span>
-                <h4>Chat n8n</h4>
-                <p><?= ($chatSettings['chat_enabled'] ?? '0') === '1' ? 'Activé' : 'Désactivé' ?> — webhook n8n.</p>
+                <h4>Agent de chat</h4>
+                <p><?= ($chatSettings['chat_enabled'] ?? '0') === '1' ? 'Activé' : 'Désactivé' ?> — conseiller OpenAI + catalogue.</p>
             </a>
             <a href="/admin/users/index.php" class="module-card">
                 <span class="module-icon"><?= adminIcon('user') ?></span>
