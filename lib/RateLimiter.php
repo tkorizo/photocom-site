@@ -88,10 +88,33 @@ class RateLimiter
 
     public static function reset(string $bucket): void
     {
-        $file = self::file($bucket);
-        if (is_file($file)) {
-            @unlink($file);
+        self::deleteFile(self::file($bucket));
+    }
+
+    public static function resetForIp(string $bucket, string $ip): void
+    {
+        $ip = trim($ip);
+        if ($ip === '' || filter_var($ip, FILTER_VALIDATE_IP) === false) {
+            return;
         }
+        self::deleteFile(self::file($bucket, $ip));
+    }
+
+    public static function isLockedForIp(string $bucket, string $ip): bool
+    {
+        return self::lockRemainingForIp($bucket, $ip) > 0;
+    }
+
+    public static function lockRemainingForIp(string $bucket, string $ip): int
+    {
+        $ip = trim($ip);
+        if ($ip === '' || filter_var($ip, FILTER_VALIDATE_IP) === false) {
+            return 0;
+        }
+        $data = self::readPath(self::file($bucket, $ip));
+        $until = (int) ($data['lock_until'] ?? 0);
+
+        return max(0, $until - time());
     }
 
     public static function lock(string $bucket, int $seconds): void
@@ -114,7 +137,12 @@ class RateLimiter
     /** @return array<string, mixed> */
     private static function read(string $bucket): array
     {
-        $file = self::file($bucket);
+        return self::readPath(self::file($bucket));
+    }
+
+    /** @return array<string, mixed> */
+    private static function readPath(string $file): array
+    {
         if (!is_file($file)) {
             return [];
         }
@@ -129,6 +157,13 @@ class RateLimiter
         $decoded = json_decode((string) $raw, true);
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    private static function deleteFile(string $file): void
+    {
+        if (is_file($file)) {
+            @unlink($file);
+        }
     }
 
     /** @param array<string, mixed> $data */
@@ -158,9 +193,10 @@ class RateLimiter
         return ROOT_PATH . '/storage/rate-limit';
     }
 
-    private static function file(string $bucket): string
+    private static function file(string $bucket, ?string $ip = null): string
     {
-        $key = hash('sha256', $bucket . '|' . self::clientIp());
+        $ip = $ip !== null && $ip !== '' ? $ip : self::clientIp();
+        $key = hash('sha256', $bucket . '|' . $ip);
 
         return self::directory() . '/' . $key . '.json';
     }

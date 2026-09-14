@@ -20,8 +20,8 @@ class ChatAgent
 
         $verdict = ChatGuard::inspect($message, $sessionId);
         if ($verdict['action'] === 'block') {
-            ChatGuard::block($sessionId);
             self::recordWithoutModel($sessionId, $pageUrl, $clientHints, $message, $verdict['reply']);
+            ChatGuard::block($sessionId);
 
             return ['reply' => $verdict['reply'], 'session_id' => $sessionId, 'blocked' => true];
         }

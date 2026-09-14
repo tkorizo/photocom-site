@@ -1937,3 +1937,30 @@ input.input-invalid,
     margin: 0.18rem 0 0;
     word-break: break-word;
 }
+
+.chat-visitor-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.chat-block-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #e74c3c;
+    vertical-align: middle;
+}
+
+.chat-block-icon svg {
+    display: block;
+}
+
+h2 .chat-block-icon {
+    margin-right: 0.25rem;
+}
+
+.chat-row-blocked td:first-child {
+    box-shadow: inset 3px 0 0 #e74c3c;
+}

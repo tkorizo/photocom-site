@@ -243,105 +243,140 @@
     history = Array.isArray(restored.messages) ? restored.messages : [];
     greeted = !!restored.greeted || history.length > 0;
     blocked = !!restored.blocked;
-    if (blocked) {
-        hideWidget();
-        return;
-    }
-    renderHistory();
-    beat();
-    if (restored.open && history.length > 0) {
-        openChat(true);
-    }
 
-    window.setInterval(beat, 8000);
-    window.addEventListener('pageshow', beat);
-    window.addEventListener('storage', function (event) {
-        if (event.key === STORAGE_KEY && event.newValue) {
-            var incoming = Object.assign(emptyState(), jsonParse(event.newValue, emptyState()));
-            sessionId = incoming.sid || sessionId;
-            history = Array.isArray(incoming.messages) ? incoming.messages : [];
-            greeted = !!incoming.greeted || history.length > 0;
-            renderHistory();
-            try {
-                window.sessionStorage.setItem(STORAGE_KEY, event.newValue);
-            } catch (err) {}
-            if (incoming.open) {
-                openChat(true);
-            } else if (widget.classList.contains('is-open')) {
+    function startWidget() {
+        renderHistory();
+        beat();
+        if (restored.open && history.length > 0) {
+            openChat(true);
+        }
+
+        window.setInterval(beat, 8000);
+        window.addEventListener('pageshow', beat);
+        window.addEventListener('storage', function (event) {
+            if (event.key === STORAGE_KEY && event.newValue) {
+                var incoming = Object.assign(emptyState(), jsonParse(event.newValue, emptyState()));
+                sessionId = incoming.sid || sessionId;
+                history = Array.isArray(incoming.messages) ? incoming.messages : [];
+                greeted = !!incoming.greeted || history.length > 0;
+                if (incoming.blocked) {
+                    hideWidget();
+                    return;
+                }
+                renderHistory();
+                try {
+                    window.sessionStorage.setItem(STORAGE_KEY, event.newValue);
+                } catch (err) {}
+                if (incoming.open) {
+                    openChat(true);
+                } else if (widget.classList.contains('is-open')) {
+                    closeChat();
+                }
+            }
+        });
+
+        if (toggle) {
+            toggle.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                openChat();
+            });
+        }
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeChat();
+            });
+        }
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && widget.classList.contains('is-open')) {
                 closeChat();
             }
-        }
-    });
-
-    if (toggle) {
-        toggle.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            openChat();
         });
-    }
 
-    if (closeBtn) {
-        closeBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            closeChat();
-        });
-    }
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var input = form.querySelector('input[name="message"]');
+                var text = (input && input.value || '').trim();
+                if (!text) return;
 
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && widget.classList.contains('is-open')) {
-            closeChat();
-        }
-    });
+                addMessage(text, 'user');
+                input.value = '';
 
-    if (form) {
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            var input = form.querySelector('input[name="message"]');
-            var text = (input && input.value || '').trim();
-            if (!text) return;
-
-            addMessage(text, 'user');
-            input.value = '';
-
-            var honey = form.querySelector('input[name="company_url"]');
-            fetch('/api/chat', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-Token': (window.PHOTOCOM && window.PHOTOCOM.csrf) || '',
-                },
-                body: JSON.stringify({
-                    message: text,
-                    csrf: (window.PHOTOCOM && window.PHOTOCOM.csrf) || '',
-                    session_id: getSessionId(),
-                    page_url: window.location.pathname + (window.location.search || ''),
-                    visitor: visitorHints(),
-                    company_url: honey ? honey.value : '',
-                }),
-            })
-                .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
-                .then(function (result) {
-                    var data = result.data || {};
-                    if (data.session_id) {
-                        sessionId = data.session_id;
-                    }
-                    if (data.blocked) {
-                        if (data.reply) {
-                            addMessage(data.reply, 'bot');
-                        }
-                        window.setTimeout(hideWidget, 1600);
-                        return;
-                    }
-                    var reply = data.reply || data.error || config.offline || 'Merci, nous revenons vers vous rapidement.';
-                    addMessage(reply, 'bot');
+                var honey = form.querySelector('input[name="company_url"]');
+                fetch('/api/chat', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': (window.PHOTOCOM && window.PHOTOCOM.csrf) || '',
+                    },
+                    body: JSON.stringify({
+                        message: text,
+                        csrf: (window.PHOTOCOM && window.PHOTOCOM.csrf) || '',
+                        session_id: getSessionId(),
+                        page_url: window.location.pathname + (window.location.search || ''),
+                        visitor: visitorHints(),
+                        company_url: honey ? honey.value : '',
+                    }),
                 })
-                .catch(function () {
-                    addMessage(config.offline || 'Service temporairement indisponible.', 'bot');
-                });
-        });
+                    .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+                    .then(function (result) {
+                        var data = result.data || {};
+                        if (data.session_id) {
+                            sessionId = data.session_id;
+                        }
+                        if (data.blocked) {
+                            if (data.reply) {
+                                addMessage(data.reply, 'bot');
+                            }
+                            window.setTimeout(hideWidget, 1600);
+                            return;
+                        }
+                        var reply = data.reply || data.error || config.offline || 'Merci, nous revenons vers vous rapidement.';
+                        addMessage(reply, 'bot');
+                    })
+                    .catch(function () {
+                        addMessage(config.offline || 'Service temporairement indisponible.', 'bot');
+                    });
+            });
+        }
+    }
+
+    if (blocked) {
+        fetch('/api/chat', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-Token': (window.PHOTOCOM && window.PHOTOCOM.csrf) || '',
+            },
+            body: JSON.stringify({
+                action: 'status',
+                session_id: sessionId,
+                csrf: (window.PHOTOCOM && window.PHOTOCOM.csrf) || '',
+            }),
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data && data.blocked === false) {
+                    blocked = false;
+                    persist();
+                    startWidget();
+                    return;
+                }
+                hideWidget();
+            })
+            .catch(function () {
+                hideWidget();
+            });
+    } else {
+        startWidget();
     }
 })();

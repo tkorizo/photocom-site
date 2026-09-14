@@ -256,6 +256,59 @@ class ChatConversationRepository
         return $stmt->fetchAll() ?: [];
     }
 
+    public static function setBlocked(string $sessionId, int $until, string $reason = 'abuse'): void
+    {
+        $sessionId = self::normalizeSessionId($sessionId);
+        Database::getInstance()->prepare(
+            'UPDATE chat_conversations
+             SET blocked_until = :until, blocked_reason = :reason
+             WHERE session_id = :sid'
+        )->execute([
+            'until' => max(0, $until),
+            'reason' => mb_substr($reason, 0, 40),
+            'sid' => $sessionId,
+        ]);
+    }
+
+    public static function clearBlocked(string $sessionId): void
+    {
+        $sessionId = self::normalizeSessionId($sessionId);
+        Database::getInstance()->prepare(
+            'UPDATE chat_conversations
+             SET blocked_until = 0, blocked_reason = NULL
+             WHERE session_id = :sid'
+        )->execute(['sid' => $sessionId]);
+    }
+
+    public static function clearAllBlocked(): void
+    {
+        Database::getInstance()->exec(
+            'UPDATE chat_conversations SET blocked_until = 0, blocked_reason = NULL WHERE blocked_until > 0'
+        );
+    }
+
+    public static function isSessionBlocked(string $sessionId): bool
+    {
+        $sessionId = self::normalizeSessionId($sessionId);
+        $stmt = Database::getInstance()->prepare(
+            'SELECT blocked_until FROM chat_conversations WHERE session_id = :sid LIMIT 1'
+        );
+        $stmt->execute(['sid' => $sessionId]);
+        $until = (int) ($stmt->fetchColumn() ?: 0);
+
+        return $until > time();
+    }
+
+    /** @return list<array{session_id:string,visitor_ip:?string}> */
+    public static function blockTargets(): array
+    {
+        $stmt = Database::getInstance()->query(
+            'SELECT session_id, visitor_ip FROM chat_conversations'
+        );
+
+        return $stmt ? ($stmt->fetchAll() ?: []) : [];
+    }
+
     public static function delete(int $id): void
     {
         Database::getInstance()->prepare('DELETE FROM chat_conversations WHERE id = :id')->execute(['id' => $id]);

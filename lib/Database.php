@@ -153,6 +153,8 @@ class Database
         self::addColumnIfMissing('chat_conversations', 'visitor_city', 'TEXT');
         self::addColumnIfMissing('chat_conversations', 'visitor_user_agent', 'TEXT');
         self::addColumnIfMissing('chat_conversations', 'visitor_meta', 'TEXT');
+        self::addColumnIfMissing('chat_conversations', 'blocked_until', 'INTEGER NOT NULL DEFAULT 0');
+        self::addColumnIfMissing('chat_conversations', 'blocked_reason', 'TEXT');
         $db->exec('CREATE TABLE IF NOT EXISTS chat_messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             conversation_id INTEGER NOT NULL,
@@ -303,6 +305,7 @@ class Database
         }
 
         SettingRepository::applyChatPlaybook();
+        ChatGuard::applyResetOnce();
     }
 
     private static function addColumnIfMissing(string $table, string $column, string $definition): void

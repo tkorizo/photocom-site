@@ -21,6 +21,14 @@ if (!is_array($payload)) {
 }
 
 $sessionId = ChatConversationRepository::normalizeSessionId((string) ($payload['session_id'] ?? ''));
+$action = (string) ($payload['action'] ?? '');
+if ($action === 'status') {
+    echo json_encode([
+        'blocked' => ChatGuard::isBlocked($sessionId),
+        'session_id' => $sessionId,
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 if (ChatGuard::isBlocked($sessionId) || ChatGuard::honeypotFilled($payload)) {
     if (ChatGuard::honeypotFilled($payload)) {
         ChatGuard::block($sessionId);

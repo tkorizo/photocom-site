@@ -30,6 +30,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             Helpers::redirect('/admin/chat/index.php?tab=chats');
         }
+        if ($action === 'unblock_chat') {
+            $id = (int) ($_POST['id'] ?? 0);
+            $conversation = $id > 0 ? ChatConversationRepository::find($id) : null;
+            if ($conversation) {
+                ChatGuard::unblockVisitor(
+                    (string) ($conversation['session_id'] ?? ''),
+                    (string) ($conversation['visitor_ip'] ?? '')
+                );
+                AuditLog::record('chat.unblock', 'chat', $id);
+                Helpers::flash('success', 'Le chat a été réactivé pour ce visiteur.');
+            }
+            Helpers::redirect('/admin/chat/index.php?tab=chats');
+        }
+        if ($action === 'unblock_all') {
+            ChatGuard::clearAllBlocks();
+            AuditLog::record('chat.unblock_all', 'chat', null);
+            Helpers::flash('success', 'Tous les blocages chat ont été levés.');
+            Helpers::redirect('/admin/chat/index.php?tab=chats');
+        }
 
         $postedTab = (string) ($_POST['tab'] ?? $tab);
         if ($postedTab === 'instructions') {
@@ -109,6 +128,9 @@ require dirname(__DIR__) . '/includes/header.php';
 
 <?php if ($message = Helpers::flash('success')): ?>
     <div class="alert alert-success"><?= Helpers::e($message) ?></div>
+<?php endif; ?>
+<?php if ($message = Helpers::flash('error')): ?>
+    <div class="alert alert-error"><?= Helpers::e($message) ?></div>
 <?php endif; ?>
 <?php if (!empty($errors)): ?>
     <div class="alert alert-error"><?= Helpers::e($errors[0]) ?></div>
@@ -328,6 +350,11 @@ require dirname(__DIR__) . '/includes/header.php';
             </form>
             <a class="btn btn-sm" href="/admin/chat/export.php?format=json<?= $chatSearch !== '' ? '&amp;q=' . rawurlencode($chatSearch) : '' ?>">Tout exporter (JSON)</a>
             <a class="btn btn-sm btn-outline" href="/admin/chat/export.php?format=csv<?= $chatSearch !== '' ? '&amp;q=' . rawurlencode($chatSearch) : '' ?>">CSV</a>
+            <form method="post" onsubmit="return confirm('Réactiver le chat pour tous les visiteurs bloqués ?');">
+                <?= Auth::csrfField() ?>
+                <input type="hidden" name="action" value="unblock_all">
+                <button type="submit" class="btn btn-sm btn-outline">Débloquer tous</button>
+            </form>
         </div>
     </div>
     <div class="table-wrap">
@@ -347,16 +374,34 @@ require dirname(__DIR__) . '/includes/header.php';
                     <?php
                     $cid = (int) $conv['id'];
                     $preview = ChatConversationRepository::firstUserMessage($cid);
+                    $blocked = ChatGuard::isConversationBlocked($conv);
                     ?>
-                    <tr>
+                    <tr class="<?= $blocked ? 'chat-row-blocked' : '' ?>">
                         <td><?= Helpers::e($preview !== '' ? $preview : '—') ?></td>
-                        <td><?= Helpers::e(VisitorInfo::shortLabel($conv)) ?></td>
+                        <td>
+                            <span class="chat-visitor-cell">
+                                <?php if ($blocked): ?>
+                                    <span class="chat-block-icon" title="Visiteur bloqué (IP ou session) — le chat est masqué sur le site" aria-label="Visiteur bloqué">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8l8 8M16 8l-8 8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                                    </span>
+                                <?php endif; ?>
+                                <?= Helpers::e(VisitorInfo::shortLabel($conv)) ?>
+                            </span>
+                        </td>
                         <td><?= Helpers::e((string) ($conv['last_message_at'] ?? $conv['created_at'] ?? '')) ?></td>
                         <td><?= (int) ($conv['message_count'] ?? 0) ?></td>
                         <td class="text-muted"><?= Helpers::e(mb_substr((string) ($conv['page_url'] ?? ''), 0, 48)) ?></td>
                         <td class="panel-actions">
                             <a class="btn btn-sm" href="/admin/chat/conversation.php?id=<?= $cid ?>">Ouvrir</a>
                             <a class="btn btn-sm btn-outline" href="/admin/chat/export.php?id=<?= $cid ?>&amp;format=json">Exporter</a>
+                            <?php if ($blocked): ?>
+                                <form method="post">
+                                    <?= Auth::csrfField() ?>
+                                    <input type="hidden" name="action" value="unblock_chat">
+                                    <input type="hidden" name="id" value="<?= $cid ?>">
+                                    <button type="submit" class="btn btn-sm">Réactiver</button>
+                                </form>
+                            <?php endif; ?>
                             <form method="post" onsubmit="return confirm('Supprimer cette conversation ?');">
                                 <?= Auth::csrfField() ?>
                                 <input type="hidden" name="action" value="delete_chat">

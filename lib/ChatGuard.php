@@ -7,10 +7,11 @@ declare(strict_types=1);
  */
 class ChatGuard
 {
-    private const SESSION_BLOCK = 'chat_guard_blocked';
     private const SESSION_LAST = 'chat_guard_last';
     private const SESSION_REPEAT = 'chat_guard_repeat';
     private const IP_BUCKET = 'chat-abuse';
+    private const BLOCK_SECONDS = 6 * 3600;
+    public const RESET_VERSION = '2026-09-14-unblock-1';
 
     /**
      * @return array{action: 'ok'|'canned'|'block', reply: string, reason: string}
@@ -62,14 +63,31 @@ class ChatGuard
 
     public static function isBlocked(string $sessionId = ''): bool
     {
-        Auth::startSession();
-        if (!empty($_SESSION[self::SESSION_BLOCK])) {
-            return true;
-        }
         if (RateLimiter::isLocked(self::IP_BUCKET)) {
             return true;
         }
         if ($sessionId !== '' && self::sessionFileBlocked($sessionId)) {
+            return true;
+        }
+        if ($sessionId !== '' && ChatConversationRepository::isSessionBlocked($sessionId)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static function isConversationBlocked(array $conversation): bool
+    {
+        $until = (int) ($conversation['blocked_until'] ?? 0);
+        if ($until > time()) {
+            return true;
+        }
+        $sessionId = trim((string) ($conversation['session_id'] ?? ''));
+        $ip = trim((string) ($conversation['visitor_ip'] ?? ''));
+        if ($sessionId !== '' && self::sessionFileBlocked($sessionId)) {
+            return true;
+        }
+        if ($ip !== '' && RateLimiter::isLockedForIp(self::IP_BUCKET, $ip)) {
             return true;
         }
 
@@ -78,12 +96,47 @@ class ChatGuard
 
     public static function block(string $sessionId = ''): void
     {
-        Auth::startSession();
-        $_SESSION[self::SESSION_BLOCK] = 1;
-        RateLimiter::lock(self::IP_BUCKET, 6 * 3600);
+        RateLimiter::lock(self::IP_BUCKET, self::BLOCK_SECONDS);
         if ($sessionId !== '') {
             self::markSessionFile($sessionId);
+            ChatConversationRepository::setBlocked($sessionId, time() + self::BLOCK_SECONDS, 'abuse');
         }
+    }
+
+    public static function unblockVisitor(string $sessionId = '', string $ip = ''): void
+    {
+        $sessionId = trim($sessionId);
+        $ip = trim($ip);
+        if ($sessionId !== '') {
+            self::clearSessionFile($sessionId);
+            ChatConversationRepository::clearBlocked($sessionId);
+        }
+        if ($ip !== '') {
+            RateLimiter::resetForIp(self::IP_BUCKET, $ip);
+        }
+    }
+
+    public static function clearAllBlocks(): void
+    {
+        $dir = ROOT_PATH . '/storage/rate-limit';
+        if (is_dir($dir)) {
+            foreach (glob($dir . '/chat-sid-*.json') ?: [] as $file) {
+                @unlink($file);
+            }
+        }
+        foreach (ChatConversationRepository::blockTargets() as $row) {
+            self::unblockVisitor((string) ($row['session_id'] ?? ''), (string) ($row['visitor_ip'] ?? ''));
+        }
+        ChatConversationRepository::clearAllBlocked();
+    }
+
+    public static function applyResetOnce(): void
+    {
+        if (SettingRepository::get('chat_block_reset') === self::RESET_VERSION) {
+            return;
+        }
+        self::clearAllBlocks();
+        SettingRepository::set('chat_block_reset', self::RESET_VERSION);
     }
 
     public static function honeypotFilled(array $payload): bool
@@ -223,8 +276,16 @@ class ChatGuard
         if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
             return;
         }
-        $payload = json_encode(['until' => time() + 6 * 3600], JSON_UNESCAPED_UNICODE) ?: '{}';
+        $payload = json_encode(['until' => time() + self::BLOCK_SECONDS], JSON_UNESCAPED_UNICODE) ?: '{}';
         @file_put_contents(self::sessionFile($sessionId), $payload, LOCK_EX);
+    }
+
+    private static function clearSessionFile(string $sessionId): void
+    {
+        $file = self::sessionFile($sessionId);
+        if (is_file($file)) {
+            @unlink($file);
+        }
     }
 
     private static function sessionFile(string $sessionId): string
