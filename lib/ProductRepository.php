@@ -284,7 +284,7 @@ class ProductRepository
      *
      * @return list<array<string, mixed>>
      */
-    public static function searchForChat(string $query, int $limit = 6): array
+    public static function searchForChat(string $query, int $limit = 6, bool $includeCategory = true): array
     {
         $query = trim($query);
         $limit = max(1, min(8, $limit));
@@ -292,33 +292,53 @@ class ProductRepository
             return [];
         }
 
+        $compact = preg_replace('/[\s\-_]+/u', '', mb_strtolower($query)) ?? mb_strtolower($query);
+        $categorySql = $includeCategory
+            ? "OR EXISTS (
+                    SELECT 1 FROM product_categories pc
+                    JOIN categories c ON c.id = pc.category_id
+                    WHERE pc.product_id = p.id AND c.name LIKE :q4
+               )"
+            : '';
+
         $stmt = Database::getInstance()->prepare(
             "SELECT p.id, p.name, p.slug, p.brand, p.sku, p.image, p.price, p.sale_price, p.on_sale,
-                    p.short_description, p.is_out_of_stock, p.is_coming_soon, p.stock_status
+                    p.short_description, p.is_out_of_stock, p.is_coming_soon, p.stock_status, p.is_active,
+                    p.catalog_visibility
              FROM products p
              WHERE p.is_active = 1
                AND (p.catalog_visibility IS NULL OR p.catalog_visibility = '' OR p.catalog_visibility IN ('visible', 'catalog', 'search'))
                AND (
                     p.name LIKE :q1 OR p.sku LIKE :q2 OR IFNULL(p.brand, '') LIKE :q3
-                    OR EXISTS (
-                        SELECT 1 FROM product_categories pc
-                        JOIN categories c ON c.id = pc.category_id
-                        WHERE pc.product_id = p.id AND c.name LIKE :q4
-                    )
+                    OR p.slug LIKE :q5
+                    OR replace(replace(lower(p.name), ' ', ''), '-', '') LIKE :q_compact
+                    OR replace(replace(lower(IFNULL(p.slug, '')), ' ', ''), '-', '') LIKE :q_compact
+                    {$categorySql}
                )
              ORDER BY
-               CASE WHEN lower(p.name) LIKE lower(:q_start) THEN 0 ELSE 1 END,
+               CASE
+                 WHEN lower(p.name) = lower(:q_exact) THEN 0
+                 WHEN lower(p.slug) = lower(:q_exact) THEN 1
+                 WHEN lower(p.name) LIKE lower(:q_start) THEN 2
+                 ELSE 3
+               END,
                p.name ASC
              LIMIT {$limit}"
         );
         $like = '%' . $query . '%';
-        $stmt->execute([
+        $params = [
             'q1' => $like,
             'q2' => $like,
             'q3' => $like,
-            'q4' => $like,
+            'q5' => $like,
+            'q_compact' => '%' . $compact . '%',
+            'q_exact' => $query,
             'q_start' => $query . '%',
-        ]);
+        ];
+        if ($includeCategory) {
+            $params['q4'] = $like;
+        }
+        $stmt->execute($params);
 
         return $stmt->fetchAll() ?: [];
     }

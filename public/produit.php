@@ -144,7 +144,12 @@ if (!$notFound) {
                             <span><?= Helpers::e($product['name']) ?></span>
                         </nav>
 
-                        <div class="product-studio-grid" data-product-gallery>
+                        <div
+                            class="product-studio-grid"
+                            data-product-gallery
+                            data-gallery-images="<?= Helpers::e(json_encode(array_values($galleryImages), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>"
+                            data-gallery-alt="<?= Helpers::e($product['name']) ?>"
+                        >
                             <div class="product-studio-media">
                                 <figure class="product-studio-stage<?= $isComing ? ' is-coming-soon' : '' ?><?= $isOut ? ' is-out-of-stock' : '' ?>">
                                     <?php if ($galleryImages !== []): ?>
@@ -153,6 +158,19 @@ if (!$notFound) {
                                             alt="<?= Helpers::e($product['name']) ?>"
                                             data-gallery-main
                                         >
+                                        <button
+                                            type="button"
+                                            class="product-studio-expand"
+                                            data-gallery-open
+                                            aria-label="Agrandir l’image"
+                                            title="Agrandir l’image"
+                                        >
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                <circle cx="11" cy="11" r="6.5"/>
+                                                <path d="M16.5 16.5L21 21" stroke-linecap="round"/>
+                                                <path d="M11 8.5v5M8.5 11h5" stroke-linecap="round"/>
+                                            </svg>
+                                        </button>
                                     <?php else: ?>
                                         <span class="product-placeholder product-detail-placeholder">PC</span>
                                     <?php endif; ?>
@@ -297,27 +315,8 @@ if (!$notFound) {
     <?php require __DIR__ . '/includes/site-chat.php'; ?>
     <?php require __DIR__ . '/includes/site-cookies.php'; ?>
     <?php require __DIR__ . '/includes/site-end-scripts.php'; ?>
-    <script>
-    (function () {
-        var root = document.querySelector('[data-product-gallery]');
-        if (!root) return;
-        var main = root.querySelector('[data-gallery-main]');
-        var thumbs = root.querySelectorAll('[data-gallery-thumb]');
-        if (!main || !thumbs.length) return;
-
-        thumbs.forEach(function (thumb) {
-            thumb.addEventListener('click', function () {
-                var src = thumb.getAttribute('data-src');
-                if (!src) return;
-                main.src = src;
-                thumbs.forEach(function (t) {
-                    var on = t === thumb;
-                    t.classList.toggle('is-active', on);
-                    t.setAttribute('aria-pressed', on ? 'true' : 'false');
-                });
-            });
-        });
-    })();
-    </script>
+    <?php if (!$notFound && $galleryImages !== []): ?>
+        <script src="/assets/js/product-gallery.js?v=<?= is_file(__DIR__ . '/assets/js/product-gallery.js') ? filemtime(__DIR__ . '/assets/js/product-gallery.js') : time() ?>" defer></script>
+    <?php endif; ?>
 </body>
 </html>

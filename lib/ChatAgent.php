@@ -142,42 +142,94 @@ class ChatAgent
     }
 
     /**
+     * Catalogue uniquement — jamais la page ouverte, jamais un produit inventé.
+     *
      * @return list<array<string, mixed>>
      */
     public static function findProducts(string $message, string $pageUrl, int $limit): array
     {
         $limit = max(1, min(8, $limit));
-        $found = [];
-        $ids = [];
-
-        if (preg_match('#/produit/([a-z0-9-]+)#i', $pageUrl, $m)) {
-            $current = ProductRepository::findBySlug($m[1]);
-            if ($current && (int) ($current['is_active'] ?? 0) === 1) {
-                $found[] = $current;
-                $ids[(int) $current['id']] = true;
-            }
-        }
-
-        if (self::isGreetingOnly($message) && $found === []) {
+        if (self::isGreetingOnly($message)) {
             return [];
         }
 
+        $found = [];
+        $ids = [];
+        $add = static function (array $row) use (&$found, &$ids, $limit): bool {
+            $id = (int) ($row['id'] ?? 0);
+            if ($id < 1 || isset($ids[$id])) {
+                return count($found) >= $limit;
+            }
+            $ids[$id] = true;
+            $found[] = $row;
+
+            return count($found) >= $limit;
+        };
+
         $queries = self::searchQueries($message);
         foreach ($queries as $query) {
-            foreach (ProductRepository::searchForChat($query, $limit) as $row) {
-                $id = (int) ($row['id'] ?? 0);
-                if ($id < 1 || isset($ids[$id])) {
-                    continue;
+            $isCode = self::isModelCode($query);
+            if ($isCode) {
+                foreach (self::queryVariants($query) as $variant) {
+                    $exact = ProductRepository::findBySlug($variant);
+                    if ($exact && self::isChatListed($exact)) {
+                        $add($exact);
+                    }
                 }
-                $ids[$id] = true;
-                $found[] = $row;
-                if (count($found) >= $limit) {
+            }
+            foreach (ProductRepository::searchForChat($query, $limit, !$isCode) as $row) {
+                $add($row);
+                if (!$isCode && count($found) >= $limit) {
                     return $found;
                 }
+            }
+            if (!$isCode && count($found) >= $limit) {
+                return $found;
             }
         }
 
         return $found;
+    }
+
+    /** @param array<string, mixed> $product */
+    private static function isChatListed(array $product): bool
+    {
+        if ((int) ($product['is_active'] ?? 0) !== 1) {
+            return false;
+        }
+        $vis = trim((string) ($product['catalog_visibility'] ?? ''));
+
+        return $vis === '' || in_array($vis, ['visible', 'catalog', 'search'], true);
+    }
+
+    private static function isModelCode(string $token): bool
+    {
+        $token = mb_strtolower(trim($token));
+        if ($token === '') {
+            return false;
+        }
+        if (preg_match('/[0-9]/', $token) === 1) {
+            return true;
+        }
+
+        return preg_match('/^[a-z]{1,6}-[a-z0-9]{2,}$/i', $token) === 1;
+    }
+
+    /** @return list<string> */
+    private static function queryVariants(string $query): array
+    {
+        $query = mb_strtolower(trim($query));
+        $out = [$query];
+        $compact = preg_replace('/[\s\-_]+/u', '', $query) ?? $query;
+        if ($compact !== '' && $compact !== $query) {
+            $out[] = $compact;
+        }
+        $dashed = preg_replace('/[\s_]+/u', '-', $query) ?? $query;
+        if ($dashed !== '' && $dashed !== $query) {
+            $out[] = $dashed;
+        }
+
+        return array_values(array_unique($out));
     }
 
     /** @return list<string> */
@@ -228,23 +280,34 @@ class ChatAgent
             '3ndkom', '3andkom', '3andna', '3ndna', '3ndi', '3andi', '3andek',
             'kifach', 'kifash', 'chno', 'chnou', 'ghir', 'daba', 'bzzaf', 'bezzaf',
             'mzyan', 'wakha', 'walo', 'hadchi', 'smahli', 't9der', 'nchri',
+            'modele', 'modèle', 'desole', 'désolé', 'catalogue', 'notre', 'nest',
+            "n'est", 'n’est', 'existe', 'exist', 'site', 'photocom', 'produit',
+            'produits', 'alternative', 'sorry', 'vraiment', 'actuellement',
         ]);
         $parts = preg_split('/[\s,;:!?]+/u', mb_strtolower($message)) ?: [];
+        $codes = [];
         $specific = [];
         $generic = [];
         foreach ($parts as $part) {
             $part = trim($part, "\"'«».-");
-            if ($part === '' || mb_strlen($part) < 3 || in_array($part, $stop, true)) {
+            if ($part === '' || in_array($part, $stop, true)) {
                 continue;
             }
-            if (preg_match('/[0-9]/', $part) === 1 || str_contains($part, '-') || mb_strlen($part) >= 5) {
+            if (self::isModelCode($part)) {
+                $codes[] = $part;
+                continue;
+            }
+            if (mb_strlen($part) < 3) {
+                continue;
+            }
+            if (mb_strlen($part) >= 5) {
                 $specific[] = $part;
             } else {
                 $generic[] = $part;
             }
         }
 
-        return array_values(array_unique(array_merge($specific, $generic)));
+        return array_values(array_unique(array_merge($codes, $specific, $generic)));
     }
 
     /**
@@ -279,9 +342,7 @@ class ChatAgent
             $parts[] = "Horaires :\n" . $site['hours'];
         }
         $parts[] = 'Page Contact : /contact — Catalogue : /catalogue.php';
-        if ($pageUrl !== '') {
-            $parts[] = 'Page actuelle du visiteur : ' . $pageUrl;
-        }
+        $parts[] = 'SOURCE UNIQUE : le tableau produits ci-dessous (catalogue du site). INTERDIT de te fier à l’URL de la page, à une fenêtre ouverte, ou aux messages assistant précédents s’ils contredisent ce tableau. INTERDIT d’inventer un nom, un prix, un stock ou une URL. INTERDIT de dire qu’un modèle est absent s’il figure dans le tableau. INTERDIT de proposer un produit qui n’y figure pas.';
 
         $noAnswer = trim((string) ($settings['chat_instruction_no_answer'] ?? ''));
         $insult = trim((string) ($settings['chat_instruction_insult'] ?? ''));
@@ -305,17 +366,17 @@ class ChatAgent
             $parts[] = $extra;
         }
 
-        $parts[] = 'Règles : 1) catalogue uniquement 2) réponses courtes en puces 3) TOUJOURS le prix du contexte + le lien complet de la fiche demandée 4) salutations rendues 5) un produit en rupture RESTE affiché, avec sa dispo 6) WhatsApp du contexte pour commande. Aucun autre numéro.';
+        $parts[] = 'Règles : 1) uniquement les produits du tableau 2) réponses courtes en puces 3) si le modèle demandé est dans le tableau : OUI + prix + dispo + lien 4) salutations rendues 5) rupture = afficher quand même 6) WhatsApp du contexte pour commande. Aucun autre numéro. Aucune fiche inventée.';
 
         if ($products === []) {
-            $parts[] = 'Aucun produit du catalogue ne correspond clairement à ce message. Si c’est un salut ou une prise de contact, réponds chaleureusement DANS LA LANGUE VERROUILLÉE, demande ce que la personne cherche, et propose de créer un compte ou de se connecter (https://photocom.ma/compte). N’invente pas de fiche. Si c’est une demande produit précise : oriente vers le catalogue ou WhatsApp.';
+            $parts[] = 'Aucun produit du catalogue ne correspond à ce message. Si c’est un salut : réponds chaleureusement DANS LA LANGUE VERROUILLÉE, demande ce que la personne cherche, et propose le compte https://photocom.ma/compte. N’invente pas de fiche. Si c’est une demande produit : dis que tu ne le trouves pas dans le catalogue actuel, oriente vers /catalogue.php ou WhatsApp. Ne fabrique jamais un lien /produit/…';
         } else {
             $lines = ['Produits du catalogue à utiliser (uniquement ceux-ci, y compris ceux en rupture) :'];
             foreach ($products as $product) {
                 $lines[] = self::formatProductLine($product, true, true);
             }
             $parts[] = implode("\n", $lines);
-            $parts[] = "Pour chaque produit demandé, même s’il est en rupture : le nom sur une ligne, puis\n- Prix : …\n- Dispo : recopie EXACTEMENT le libellé Dispo du contexte\n- Fiche : l’URL complète\nNe cache jamais un produit du contexte parce qu’il est en rupture. Tu peux ajouter 1 alternative en stock EN PLUS, pas à la place.";
+            $parts[] = "Si le visiteur demande un modèle présent dans cette liste : tu le montres (oui), même si un message précédent disait le contraire.\nPour chaque produit demandé : nom, puis\n- Prix : …\n- Dispo : recopie EXACTEMENT le libellé Dispo du contexte\n- Fiche : l’URL complète\nNe cache jamais un produit du tableau parce qu’il est en rupture. Alternative uniquement si elle est AUSSI dans ce tableau, EN PLUS, pas à la place.";
         }
 
         return implode("\n\n", array_filter($parts));
