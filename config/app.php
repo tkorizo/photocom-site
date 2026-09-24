@@ -20,5 +20,13 @@ return [
     'founded' => env('FOUNDED', '2010'),
     'openai_api_key' => env('OPENAI_API_KEY', ''),
     'openai_model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+    'mail_host' => env('MAIL_HOST', 'smtp.hostinger.com'),
+    'mail_port' => (int) env('MAIL_PORT', '465'),
+    'mail_encryption' => env('MAIL_ENCRYPTION', 'ssl'),
+    'mail_username' => env('MAIL_USERNAME', ''),
+    'mail_password' => env('MAIL_PASSWORD', ''),
+    'mail_from' => env('MAIL_FROM', env('MAIL_USERNAME', '')),
+    'mail_from_name' => env('MAIL_FROM_NAME', 'PHOTOCOM'),
+    'mail_reply_to' => env('MAIL_REPLY_TO', env('EMAIL', 'contact@photocom.ma')),
     'import_enabled' => false,
 ];

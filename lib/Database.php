@@ -109,6 +109,33 @@ class Database
         $db->exec('CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email)');
         $db->exec('CREATE INDEX IF NOT EXISTS idx_customers_created ON customers(created_at)');
 
+        $db->exec('CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            token_hash TEXT NOT NULL UNIQUE,
+            expires_at TEXT NOT NULL,
+            used_at TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime(\'now\')),
+            FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+        )');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_password_reset_customer ON password_reset_tokens(customer_id)');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_password_reset_expires ON password_reset_tokens(expires_at)');
+
+        $db->exec('CREATE TABLE IF NOT EXISTS email_otps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            purpose TEXT NOT NULL,
+            email TEXT NOT NULL,
+            subject_id INTEGER,
+            code_hash TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            consumed_at TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
+        )');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_email_otps_lookup ON email_otps(purpose, email, consumed_at)');
+
+        self::addColumnIfMissing('customers', 'email_verified_at', 'TEXT');
+
         $db->exec('CREATE TABLE IF NOT EXISTS customer_carts (
             customer_id INTEGER PRIMARY KEY,
             items_json TEXT NOT NULL DEFAULT \'[]\',
@@ -188,6 +215,17 @@ class Database
             value TEXT,
             updated_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
         )');
+
+        // Comptes clients déjà existants = e-mail considéré vérifié (une seule fois).
+        $bf = $db->query("SELECT value FROM settings WHERE key = 'customers_email_verified_backfill'")->fetchColumn();
+        if ($bf !== '1') {
+            $db->exec('UPDATE customers SET email_verified_at = COALESCE(email_verified_at, created_at) WHERE email_verified_at IS NULL');
+            $ins = $db->prepare(
+                "INSERT INTO settings (key, value, updated_at) VALUES ('customers_email_verified_backfill', '1', datetime('now'))
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')"
+            );
+            $ins->execute();
+        }
 
         $db->exec('CREATE TABLE IF NOT EXISTS articles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

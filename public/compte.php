@@ -12,13 +12,20 @@ if (CustomerAuth::check()) {
     Helpers::redirect('/mon-compte');
 }
 
-$tab = ($_GET['tab'] ?? 'register') === 'login' ? 'login' : 'register';
+$tabParam = (string) ($_GET['tab'] ?? 'register');
+$tab = in_array($tabParam, ['login', 'register', 'verify'], true) ? $tabParam : 'register';
 $errors = [];
+$info = Helpers::flash('success');
 $old = [
     'name' => '',
     'email' => '',
     'phone' => '',
 ];
+
+$pending = $_SESSION['customer_register_pending'] ?? null;
+if ($tab === 'verify' && (!is_array($pending) || empty($pending['email']))) {
+    $tab = 'register';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Auth::verifyCsrf($_POST['csrf_token'] ?? null)) {
@@ -37,6 +44,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($old['email'] === '' || $password === '') {
                     throw new RuntimeException('E-mail et mot de passe requis.');
                 }
+                $customer = CustomerRepository::findByEmail($old['email']);
+                if (
+                    $customer
+                    && (int) ($customer['is_active'] ?? 0) === 1
+                    && !CustomerRepository::isEmailVerified($customer)
+                    && password_verify($password, (string) $customer['password_hash'])
+                ) {
+                    $issued = OtpService::issue(
+                        OtpService::PURPOSE_CUSTOMER_REGISTER,
+                        (string) $customer['email'],
+                        (int) $customer['id'],
+                        'Vérifiez votre compte PHOTOCOM',
+                        'Bonjour ' . trim((string) $customer['name']) . ', voici le code pour activer votre compte PHOTOCOM :'
+                    );
+                    if (!$issued['ok']) {
+                        throw new RuntimeException($issued['message']);
+                    }
+                    $_SESSION['customer_register_pending'] = [
+                        'id' => (int) $customer['id'],
+                        'email' => (string) $customer['email'],
+                        'name' => (string) $customer['name'],
+                    ];
+                    Helpers::flash('success', $issued['message']);
+                    Helpers::redirect('/compte?tab=verify');
+                }
                 if (!CustomerAuth::attempt($old['email'], $password)) {
                     throw new RuntimeException('Identifiants incorrects ou compte désactivé.');
                 }
@@ -44,21 +76,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Helpers::redirect('/mon-compte');
             }
 
-            $tab = 'register';
-            if ($password !== $passwordConfirm) {
-                throw new RuntimeException('Les mots de passe ne correspondent pas.');
+            if ($action === 'verify_otp') {
+                $tab = 'verify';
+                $pending = $_SESSION['customer_register_pending'] ?? null;
+                if (!is_array($pending) || empty($pending['email']) || empty($pending['id'])) {
+                    throw new RuntimeException('Session de vérification expirée. Recréez un compte ou reconnectez-vous.');
+                }
+                $result = OtpService::verify(
+                    OtpService::PURPOSE_CUSTOMER_REGISTER,
+                    (string) $pending['email'],
+                    (string) ($_POST['otp_code'] ?? '')
+                );
+                if (!$result['ok']) {
+                    throw new RuntimeException($result['message']);
+                }
+                CustomerRepository::markEmailVerified((int) $pending['id']);
+                unset($_SESSION['customer_register_pending']);
+                if (!CustomerAuth::loginById((int) $pending['id'])) {
+                    throw new RuntimeException('Compte activé. Connectez-vous avec vos identifiants.');
+                }
+                Helpers::flash('success', 'Compte vérifié. Bienvenue !');
+                Helpers::redirect('/mon-compte');
             }
-            $id = CustomerRepository::create($old['name'], $old['email'], $password, $old['phone']);
-            CustomerAuth::loginById($id);
-            Helpers::flash('success', 'Votre compte a été créé avec succès.');
-            Helpers::redirect('/mon-compte');
+
+            if ($action === 'resend_otp') {
+                $tab = 'verify';
+                $pending = $_SESSION['customer_register_pending'] ?? null;
+                if (!is_array($pending) || empty($pending['email'])) {
+                    throw new RuntimeException('Session de vérification expirée.');
+                }
+                if (!OtpService::canResend(OtpService::PURPOSE_CUSTOMER_REGISTER, (string) $pending['email'])) {
+                    throw new RuntimeException('Patientez une minute avant de renvoyer un code.');
+                }
+                $issued = OtpService::issue(
+                    OtpService::PURPOSE_CUSTOMER_REGISTER,
+                    (string) $pending['email'],
+                    (int) ($pending['id'] ?? 0),
+                    'Vérifiez votre compte PHOTOCOM',
+                    'Bonjour, voici votre nouveau code pour activer votre compte PHOTOCOM :'
+                );
+                if (!$issued['ok']) {
+                    throw new RuntimeException($issued['message']);
+                }
+                $info = $issued['message'];
+            }
+
+            if ($action === 'register') {
+                $tab = 'register';
+                if ($password !== $passwordConfirm) {
+                    throw new RuntimeException('Les mots de passe ne correspondent pas.');
+                }
+                $id = CustomerRepository::create($old['name'], $old['email'], $password, $old['phone']);
+                $issued = OtpService::issue(
+                    OtpService::PURPOSE_CUSTOMER_REGISTER,
+                    $old['email'],
+                    $id,
+                    'Vérifiez votre compte PHOTOCOM',
+                    'Bonjour ' . $old['name'] . ', bienvenue chez PHOTOCOM. Voici votre code d’activation :'
+                );
+                if (!$issued['ok']) {
+                    CustomerRepository::delete($id);
+                    throw new RuntimeException($issued['message']);
+                }
+                $_SESSION['customer_register_pending'] = [
+                    'id' => $id,
+                    'email' => strtolower($old['email']),
+                    'name' => $old['name'],
+                ];
+                Helpers::flash('success', $issued['message']);
+                Helpers::redirect('/compte?tab=verify');
+            }
         } catch (RuntimeException $e) {
             $errors[] = $e->getMessage();
         }
     }
 }
 
-$pageTitle = $tab === 'login' ? 'Connexion' : 'Créer un compte';
+$pageTitle = match ($tab) {
+    'login' => 'Connexion',
+    'verify' => 'Vérification e-mail',
+    default => 'Créer un compte',
+};
+$pendingEmail = is_array($pending) ? (string) ($pending['email'] ?? '') : '';
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -82,11 +181,15 @@ $pageTitle = $tab === 'login' ? 'Connexion' : 'Créer un compte';
             <div class="container">
                 <div class="editorial-hero-copy">
                     <p class="section-label">Espace client</p>
-                    <h1><?= $tab === 'login' ? 'Connexion' : 'Créer un compte' ?></h1>
+                    <h1><?= Helpers::e($pageTitle) ?></h1>
                     <p class="editorial-lead">
-                        <?= $tab === 'login'
-                            ? 'Accédez à votre espace client PHOTOCOM.'
-                            : 'Inscrivez-vous pour centraliser vos demandes et vos informations.' ?>
+                        <?php if ($tab === 'login'): ?>
+                            Accédez à votre espace client PHOTOCOM.
+                        <?php elseif ($tab === 'verify'): ?>
+                            Saisissez le code reçu par e-mail pour activer votre compte.
+                        <?php else: ?>
+                            Inscrivez-vous pour centraliser vos demandes et vos informations.
+                        <?php endif; ?>
                     </p>
                 </div>
             </div>
@@ -97,25 +200,28 @@ $pageTitle = $tab === 'login' ? 'Connexion' : 'Créer un compte';
                 <div class="contact-main">
                     <header class="section-head">
                         <span class="section-label">Compte</span>
-                        <h2><?= $tab === 'login' ? 'Se connecter' : 'Inscription' ?></h2>
-                        <p class="section-sub">
-                            <?= $tab === 'login'
-                                ? 'Entrez vos identifiants pour retrouver votre espace.'
-                                : 'Quelques informations suffisent pour créer votre compte client.' ?>
-                        </p>
+                        <h2><?= Helpers::e($pageTitle) ?></h2>
                     </header>
 
                     <div class="contact-panel contact-panel-accent">
-                        <nav class="account-switch" aria-label="Choisir une action">
-                            <a
-                                href="/compte?tab=register"
-                                class="account-switch-link<?= $tab === 'register' ? ' is-active' : '' ?>"
-                            >Créer un compte</a>
-                            <a
-                                href="/compte?tab=login"
-                                class="account-switch-link<?= $tab === 'login' ? ' is-active' : '' ?>"
-                            >Se connecter</a>
-                        </nav>
+                        <?php if ($tab !== 'verify'): ?>
+                            <nav class="account-switch" aria-label="Choisir une action">
+                                <a
+                                    href="/compte?tab=register"
+                                    class="account-switch-link<?= $tab === 'register' ? ' is-active' : '' ?>"
+                                >Créer un compte</a>
+                                <a
+                                    href="/compte?tab=login"
+                                    class="account-switch-link<?= $tab === 'login' ? ' is-active' : '' ?>"
+                                >Se connecter</a>
+                            </nav>
+                        <?php endif; ?>
+
+                        <?php if ($info): ?>
+                            <div class="account-alert" role="status">
+                                <p><?= Helpers::e($info) ?></p>
+                            </div>
+                        <?php endif; ?>
 
                         <?php if ($errors !== []): ?>
                             <div class="account-alert account-alert-error" role="alert">
@@ -125,7 +231,25 @@ $pageTitle = $tab === 'login' ? 'Connexion' : 'Créer un compte';
                             </div>
                         <?php endif; ?>
 
-                        <?php if ($tab === 'register'): ?>
+                        <?php if ($tab === 'verify'): ?>
+                            <p class="section-sub">Code envoyé à <strong><?= Helpers::e($pendingEmail) ?></strong></p>
+                            <form method="post" class="account-form contact-wa-form" novalidate>
+                                <?= Auth::csrfField() ?>
+                                <input type="hidden" name="action" value="verify_otp">
+                                <div class="account-field">
+                                    <label for="otp-code">Code à 6 chiffres</label>
+                                    <input type="text" id="otp-code" name="otp_code" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" autofocus>
+                                </div>
+                                <div class="contact-wa-actions">
+                                    <button type="submit" class="btn btn-primary">Activer mon compte</button>
+                                </div>
+                            </form>
+                            <form method="post" style="margin-top:1rem">
+                                <?= Auth::csrfField() ?>
+                                <input type="hidden" name="action" value="resend_otp">
+                                <button type="submit" class="btn btn-outline">Renvoyer le code</button>
+                            </form>
+                        <?php elseif ($tab === 'register'): ?>
                             <form method="post" class="account-form contact-wa-form" novalidate>
                                 <?= Auth::csrfField() ?>
                                 <input type="hidden" name="action" value="register">
@@ -175,6 +299,10 @@ $pageTitle = $tab === 'login' ? 'Connexion' : 'Créer un compte';
                                     <label for="login-password">Mot de passe</label>
                                     <input type="password" id="login-password" name="password" required autocomplete="current-password">
                                 </div>
+
+                                <p class="account-optional" style="margin:0 0 1rem">
+                                    <a href="/compte/mot-de-passe">Mot de passe oublié ?</a>
+                                </p>
 
                                 <div class="contact-wa-actions">
                                     <button type="submit" class="btn btn-primary">Se connecter</button>

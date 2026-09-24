@@ -26,6 +26,10 @@ class Auth
     public static function startSession(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
+            // Évite Cache-Control: no-store sur les pages publiques (PageSpeed / CDN).
+            if (!headers_sent()) {
+                session_cache_limiter('');
+            }
             session_set_cookie_params([
                 'lifetime' => 0,
                 'path' => '/',
@@ -74,12 +78,16 @@ class Auth
         return false;
     }
 
-    public static function attempt(string $email, string $password): bool
+    /**
+     * Vérifie e-mail + mot de passe sans ouvrir la session admin.
+     * @return array<string,mixed>|null
+     */
+    public static function validateCredentials(string $email, string $password): ?array
     {
         self::startSession();
 
         if (self::isLockedOut()) {
-            return false;
+            return null;
         }
 
         $stmt = Database::getInstance()->prepare('SELECT * FROM users WHERE email = :email LIMIT 1');
@@ -89,11 +97,19 @@ class Auth
         if (!$user || !password_verify($password, $user['password_hash'])) {
             self::recordFailedAttempt();
             RateLimiter::fail('login', self::MAX_ATTEMPTS, self::LOCKOUT_SECONDS);
-            return false;
+            return null;
         }
 
         RateLimiter::reset('login');
+        unset($_SESSION['login_attempts'], $_SESSION['lockout_until']);
 
+        return $user;
+    }
+
+    /** @param array<string,mixed> $user */
+    public static function completeLogin(array $user): void
+    {
+        self::startSession();
         $role = UserRepository::normalizeRole((string) ($user['role'] ?? self::ROLE_CATALOG));
 
         session_regenerate_id(true);
@@ -103,7 +119,7 @@ class Auth
             'name' => $user['name'],
             'role' => $role,
         ];
-        unset($_SESSION['login_attempts'], $_SESSION['lockout_until']);
+        unset($_SESSION['login_attempts'], $_SESSION['lockout_until'], $_SESSION['admin_otp_pending']);
 
         if (class_exists('AuditLog')) {
             AuditLog::record('auth.login', 'user', (int) $user['id'], [
@@ -115,6 +131,15 @@ class Auth
                 'role' => $role,
             ]);
         }
+    }
+
+    public static function attempt(string $email, string $password): bool
+    {
+        $user = self::validateCredentials($email, $password);
+        if (!$user) {
+            return false;
+        }
+        self::completeLogin($user);
 
         return true;
     }

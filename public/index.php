@@ -162,10 +162,9 @@ if ($heroImageMobile !== '') {
                         class="hero-video-el"
                         muted
                         <?= $heroLoop ? 'loop' : '' ?>
-                        autoplay
                         playsinline
                         webkit-playsinline
-                        preload="auto"
+                        preload="none"
                     ></video>
                 <?php endif; ?>
                 <?php if ($hasHeroImage || $hasHeroVideo): ?>

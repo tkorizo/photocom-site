@@ -63,8 +63,8 @@ class CustomerRepository
         }
 
         $stmt = Database::getInstance()->prepare(
-            'INSERT INTO customers (email, password_hash, name, phone, is_active)
-             VALUES (:email, :password_hash, :name, :phone, 1)'
+            'INSERT INTO customers (email, password_hash, name, phone, is_active, email_verified_at)
+             VALUES (:email, :password_hash, :name, :phone, 1, NULL)'
         );
         $stmt->execute([
             'email' => $email,
@@ -74,6 +74,33 @@ class CustomerRepository
         ]);
 
         return (int) Database::getInstance()->lastInsertId();
+    }
+
+    public static function markEmailVerified(int $id): void
+    {
+        $stmt = Database::getInstance()->prepare(
+            'UPDATE customers SET email_verified_at = datetime(\'now\'), updated_at = datetime(\'now\') WHERE id = :id'
+        );
+        $stmt->execute(['id' => $id]);
+    }
+
+    public static function isEmailVerified(array $customer): bool
+    {
+        return trim((string) ($customer['email_verified_at'] ?? '')) !== '';
+    }
+
+    public static function updatePassword(int $id, string $password): void
+    {
+        if (strlen($password) < 8) {
+            throw new RuntimeException('Le mot de passe doit contenir au moins 8 caractères.');
+        }
+        $stmt = Database::getInstance()->prepare(
+            'UPDATE customers SET password_hash = :password_hash, updated_at = datetime(\'now\') WHERE id = :id'
+        );
+        $stmt->execute([
+            'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+            'id' => $id,
+        ]);
     }
 
     public static function setActive(int $id, bool $active): void

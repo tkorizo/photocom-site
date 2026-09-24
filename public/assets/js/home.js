@@ -20,11 +20,13 @@
         if (!conn) return false;
         if (conn.saveData) return true;
         var type = String(conn.effectiveType || '');
-        return type === 'slow-2g' || type === '2g';
+        return type === 'slow-2g' || type === '2g' || type === '3g';
     }
 
+    // Mobile + image de secours : pas de vidéo (gros gain LCP / payload).
+    var isMobile = window.matchMedia('(max-width: 900px)').matches;
     if (!video || !src) return;
-    if (hasImage && connectionIsSlow()) return;
+    if (hasImage && (connectionIsSlow() || isMobile)) return;
 
     var settled = false;
     var timer = null;
@@ -62,7 +64,7 @@
     video.setAttribute('webkit-playsinline', '');
     if (loop) video.setAttribute('loop', '');
     else video.removeAttribute('loop');
-    video.preload = 'auto';
+    video.preload = 'metadata';
     video.src = src;
     video.addEventListener('playing', markReady, { once: true });
     video.addEventListener('error', abortHeroVideo, { once: true });
@@ -77,6 +79,7 @@
         });
     }
     video.load();
+    video.play().catch(function () { abortHeroVideo(); });
 
     var tryPlay = function () {
         var playPromise = video.play();

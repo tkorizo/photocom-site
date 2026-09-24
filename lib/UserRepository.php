@@ -4,6 +4,35 @@ declare(strict_types=1);
 
 class UserRepository
 {
+    /**
+     * Hiérarchie (plus haut = voit / gère les rangs inférieurs ou égaux).
+     * super_admin > admin > editor > catalog|content
+     */
+    public static function roleRank(string $role): int
+    {
+        return match (self::normalizeRole($role)) {
+            Auth::ROLE_SUPER_ADMIN => 50,
+            Auth::ROLE_ADMIN => 40,
+            Auth::ROLE_EDITOR => 30,
+            Auth::ROLE_CATALOG, Auth::ROLE_CONTENT => 20,
+            default => 0,
+        };
+    }
+
+    /** L’acteur peut voir la cible si son rang est >= (soi + niveaux inférieurs). */
+    public static function canActorSee(array $target, ?array $actor = null): bool
+    {
+        $actor = $actor ?? Auth::user();
+        if (!$actor) {
+            return false;
+        }
+
+        $actorRole = self::normalizeRole((string) ($actor['role'] ?? ''));
+        $targetRole = self::normalizeRole((string) ($target['role'] ?? ''));
+
+        return self::roleRank($actorRole) >= self::roleRank($targetRole);
+    }
+
     /** @return list<array{id:int,email:string,name:string,role:string,created_at:string}> */
     public static function all(): array
     {
@@ -11,13 +40,9 @@ class UserRepository
             ->query('SELECT id, email, name, role, created_at FROM users ORDER BY created_at ASC')
             ->fetchAll();
 
-        if (Auth::isSuperAdmin()) {
-            return $users;
-        }
-
         return array_values(array_filter(
             $users,
-            static fn (array $u): bool => self::normalizeRole((string) ($u['role'] ?? '')) !== Auth::ROLE_SUPER_ADMIN
+            static fn (array $u): bool => self::canActorSee($u)
         ));
     }
 
@@ -46,15 +71,31 @@ class UserRepository
         return in_array($role, Auth::ROLES, true) ? $role : Auth::ROLE_CATALOG;
     }
 
-    /** Rôles pouvant être attribués via le formulaire (jamais un 2e super admin). */
-    public static function assignableRoles(): array
+    /**
+     * Rôles attribuables : uniquement des rangs strictement inférieurs.
+     *
+     * @return array<string,string>
+     */
+    public static function assignableRoles(?array $actor = null): array
     {
-        return [
+        $actor = $actor ?? Auth::user();
+        $actorRank = self::roleRank((string) ($actor['role'] ?? ''));
+
+        $all = [
             Auth::ROLE_CONTENT => 'Gestion de contenu — articles et pages',
             Auth::ROLE_CATALOG => 'Gestion de produits — catalogue, comptes et paniers clients',
             Auth::ROLE_EDITOR => 'Éditeur — catalogue, contenu et page d’accueil',
-            Auth::ROLE_ADMIN => 'Administrateur — accès complet',
+            Auth::ROLE_ADMIN => 'Administrateur — accès complet (sauf super admin)',
         ];
+
+        $out = [];
+        foreach ($all as $role => $label) {
+            if (self::roleRank($role) < $actorRank) {
+                $out[$role] = $label;
+            }
+        }
+
+        return $out;
     }
 
     public static function create(string $name, string $email, string $password, string $role = Auth::ROLE_CATALOG): int
@@ -88,10 +129,13 @@ class UserRepository
             throw new RuntimeException('Utilisateur introuvable.');
         }
 
+        if (!self::canActorManage($existingUser)) {
+            throw new RuntimeException('Vous ne pouvez pas modifier ce compte.');
+        }
+
         $currentRole = self::normalizeRole((string) $existingUser['role']);
         $role = self::normalizeRole($role);
 
-        // Le super admin unique ne peut pas être rétrogradé.
         if ($currentRole === Auth::ROLE_SUPER_ADMIN) {
             $role = Auth::ROLE_SUPER_ADMIN;
         } elseif ($role === Auth::ROLE_SUPER_ADMIN || !isset(self::assignableRoles()[$role])) {
@@ -145,6 +189,10 @@ class UserRepository
             return;
         }
 
+        if (!self::canActorManage($user)) {
+            throw new RuntimeException('Vous ne pouvez pas supprimer ce compte.');
+        }
+
         $role = self::normalizeRole((string) $user['role']);
 
         $count = (int) Database::getInstance()->query('SELECT COUNT(*) FROM users')->fetchColumn();
@@ -175,6 +223,10 @@ class UserRepository
         $targetRole = self::normalizeRole((string) ($target['role'] ?? ''));
 
         if (!in_array($actorRole, [Auth::ROLE_ADMIN, Auth::ROLE_SUPER_ADMIN], true)) {
+            return false;
+        }
+
+        if (!self::canActorSee($target, $actor)) {
             return false;
         }
 

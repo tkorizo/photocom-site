@@ -39,7 +39,8 @@ if (str_starts_with($uri, '/assets/')) {
         $mtime = filemtime($file) ?: time();
         $etag = '"' . dechex($mtime) . '-' . dechex((int) filesize($file)) . '"';
         header('Content-Type: ' . ($types[$ext] ?? 'application/octet-stream'));
-        header('Cache-Control: public, max-age=604800');
+        $maxAge = in_array($ext, ['woff', 'woff2'], true) ? 31536000 : 2592000;
+        header('Cache-Control: public, max-age=' . $maxAge . (in_array($ext, ['woff', 'woff2'], true) ? ', immutable' : ''));
         header('ETag: ' . $etag);
         if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim((string) $_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
             http_response_code(304);
@@ -156,6 +157,11 @@ if (preg_match('#^/produit/([a-z0-9-]+)$#', $uri, $matches)) {
 // Compte client
 if ($uri === '/compte' || $uri === '/compte.php') {
     require $root . '/public/compte.php';
+    return true;
+}
+
+if ($uri === '/compte/mot-de-passe' || $uri === '/compte-mot-de-passe.php') {
+    require $root . '/public/compte-mot-de-passe.php';
     return true;
 }
 

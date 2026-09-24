@@ -49,11 +49,10 @@ require dirname(__DIR__) . '/includes/header.php';
         <div>
             <h2>Équipe</h2>
             <p class="text-muted">
-                <strong>Gestion de contenu</strong> (articles) ·
-                <strong>Gestion de produits</strong> (catalogue) ·
-                <strong>Éditeur</strong> (catalogue et contenu) ·
-                <strong>Administrateur</strong> (accès complet) ·
-                <strong>Super administrateur</strong> (compte unique + journal).
+                Hiérarchie : chaque rôle voit uniquement les comptes de son niveau et en dessous.
+                Seul le <strong>super administrateur</strong> voit tous les comptes (y compris le sien).
+                Un <strong>administrateur</strong> ne voit pas le super administrateur.
+                Un <strong>éditeur</strong> ne voit ni administrateur ni super administrateur.
             </p>
         </div>
         <a href="/admin/users/create.php" class="btn btn-primary">+ Nouvel utilisateur</a>

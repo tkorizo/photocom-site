@@ -12,16 +12,7 @@ if (!$user) {
     Helpers::redirect('/admin/users/index.php');
 }
 
-if (!UserRepository::canActorManage($user)) {
-    Helpers::flash('error', 'Vous ne pouvez pas modifier ce compte.');
-    Helpers::redirect('/admin/users/index.php');
-}
-
-// Masquer totalement le super admin aux autres comptes (même via URL directe).
-if (
-    UserRepository::normalizeRole((string) $user['role']) === Auth::ROLE_SUPER_ADMIN
-    && !Auth::isSuperAdmin()
-) {
+if (!UserRepository::canActorManage($user) || !UserRepository::canActorSee($user)) {
     Helpers::flash('error', 'Compte introuvable.');
     Helpers::redirect('/admin/users/index.php');
 }

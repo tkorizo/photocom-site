@@ -25,6 +25,7 @@ class CustomerAuth
         if (
             !$customer
             || (int) ($customer['is_active'] ?? 0) !== 1
+            || !CustomerRepository::isEmailVerified($customer)
             || !password_verify($password, (string) $customer['password_hash'])
         ) {
             self::recordFailedAttempt();
@@ -48,7 +49,11 @@ class CustomerAuth
     public static function loginById(int $id): bool
     {
         $customer = CustomerRepository::find($id);
-        if (!$customer || (int) ($customer['is_active'] ?? 0) !== 1) {
+        if (
+            !$customer
+            || (int) ($customer['is_active'] ?? 0) !== 1
+            || !CustomerRepository::isEmailVerified($customer)
+        ) {
             return false;
         }
 
