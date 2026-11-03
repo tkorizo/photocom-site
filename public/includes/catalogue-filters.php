@@ -14,10 +14,10 @@ declare(strict_types=1);
 /** @var array|null $category */
 
 $sortOptions = [
+    'newest' => 'Nouveautés',
     'name' => 'Nom A → Z',
     'price_asc' => 'Prix croissant',
     'price_desc' => 'Prix décroissant',
-    'newest' => 'Nouveautés',
 ];
 
 $activeFilterCount = 0;

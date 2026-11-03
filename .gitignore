@@ -1,6 +1,7 @@
 .env
 .DS_Store
 database/photocom.sqlite
+database/photocom.sqlite.bak*
 
 # Rapports internes client — strictement local, jamais le site ni Git
 rapport/

@@ -51,9 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $payload['header_order'] = implode(',', SettingRepository::parseHeaderOrder($_POST['header_order'] ?? 'logo,nav,search'));
 
-            $featuredIds = array_values(array_filter(array_map('intval', (array) ($_POST['featured_product_ids'] ?? []))));
+            // Les vedettes se choisissent uniquement en fiche produit — on ignore toute ancienne liste figée.
+            $payload['featured_product_ids'] = '';
             $bestsellerIds = array_values(array_filter(array_map('intval', (array) ($_POST['bestsellers_product_ids'] ?? []))));
-            $payload['featured_product_ids'] = implode(',', $featuredIds);
             $payload['bestsellers_product_ids'] = implode(',', $bestsellerIds);
             $payload['featured_count'] = (string) max(1, min(8, (int) ($_POST['featured_count'] ?? 2)));
             $payload['bestsellers_count'] = (string) max(1, min(16, (int) ($_POST['bestsellers_count'] ?? 8)));
@@ -135,12 +135,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $home = SettingRepository::home();
 $isOn = static fn (string $key): bool => ($home[$key] ?? '0') === '1';
 $headerOrder = SettingRepository::parseHeaderOrder($home['header_order'] ?? 'logo,nav,search');
-$featuredSelected = SettingRepository::parseIdList($home['featured_product_ids'] ?? '');
 $bestsellersSelected = SettingRepository::parseIdList($home['bestsellers_product_ids'] ?? '');
 $pickerProducts = ProductRepository::listActiveForPicker(300);
-$featuredPreview = $featuredSelected !== []
-    ? ProductRepository::findByIdsOrdered($featuredSelected)
-    : ProductRepository::featured((int) ($home['featured_count'] ?? 2));
+$featuredPreview = ProductRepository::featured((int) ($home['featured_count'] ?? 2));
 $menuItems = SettingRepository::resolveMenuItems($home['home_menu_items'] ?? '');
 $categoriesForSelect = CategoryRepository::allForSelect();
 Database::initialize();
@@ -713,47 +710,7 @@ require dirname(__DIR__) . '/includes/header.php';
                     <label><input type="radio" name="featured_align" value="center" <?= $home['featured_align'] === 'center' ? 'checked' : '' ?>> Centre</label>
                     <label><input type="radio" name="featured_align" value="right" <?= $home['featured_align'] === 'right' ? 'checked' : '' ?>> Droite</label>
                 </div>
-
-                <p class="he-field-label">Choisir les produits</p>
-                <div
-                    class="admin-search-suggest-wrap he-product-search-wrap"
-                    data-search-suggest
-                    data-suggest-api="/admin/produits/suggest.php"
-                    data-suggest-link="picker"
-                    data-suggest-picker="featured"
-                    data-suggest-all-href="/admin/produits/index.php"
-                    data-suggest-all-param="search"
-                >
-                    <input
-                        type="search"
-                        class="he-product-search"
-                        placeholder="Rechercher un produit…"
-                        data-product-search="featured"
-                        data-search-input
-                        autocomplete="off"
-                        aria-autocomplete="list"
-                        aria-expanded="false"
-                    >
-                    <div class="header-search-suggest" data-search-results hidden role="listbox" aria-label="Suggestions produits"></div>
-                </div>
-                <div class="he-product-picker" data-product-picker="featured">
-                    <?php foreach ($pickerProducts as $product): ?>
-                        <?php $checked = in_array((int) $product['id'], $featuredSelected, true); ?>
-                        <label class="he-product-option">
-                            <input type="checkbox" name="featured_product_ids[]" value="<?= (int) $product['id'] ?>" <?= $checked ? 'checked' : '' ?>>
-                            <?php if (!empty($product['image'])): ?>
-                                <img src="<?= Helpers::e($product['image']) ?>" alt="">
-                            <?php else: ?>
-                                <span class="he-product-ph">PC</span>
-                            <?php endif; ?>
-                            <span>
-                                <strong><?= Helpers::e($product['name']) ?></strong>
-                                <small><?= Helpers::e(($product['brand'] ?: '—') . ' · ' . Helpers::formatPrice((float) $product['price'])) ?></small>
-                            </span>
-                        </label>
-                    <?php endforeach; ?>
-                </div>
-                <p class="he-note-inline">Si aucun produit n’est coché, les produits marqués « Vedette » dans le catalogue sont utilisés.</p>
+                <p class="he-note-inline">Les produits affichés sont ceux cochés « Produit vedette » dans chaque fiche produit. Ici : nombre et positionnement uniquement.</p>
             </div>
 
             <!-- CONSEILS -->

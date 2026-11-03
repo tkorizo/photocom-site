@@ -12,17 +12,9 @@ $brandList = [];
 try {
     Database::initialize();
 
-    $featuredIds = SettingRepository::parseIdList($home['featured_product_ids'] ?? '');
+    // Vedettes = uniquement les produits cochés « Produit vedette » en fiche produit.
     $featuredLimit = max(1, min(8, (int) ($home['featured_count'] ?? 2)));
-    if ($featuredIds !== []) {
-        $featuredProducts = array_slice(ProductRepository::findByIdsOrdered($featuredIds), 0, $featuredLimit);
-    } else {
-        $featuredProducts = ProductRepository::featured($featuredLimit);
-        if (count($featuredProducts) < $featuredLimit) {
-            $extra = ProductRepository::recent($featuredLimit - count($featuredProducts));
-            $featuredProducts = array_merge($featuredProducts, $extra);
-        }
-    }
+    $featuredProducts = ProductRepository::featured($featuredLimit);
 
     $bestsellerIds = SettingRepository::parseIdList($home['bestsellers_product_ids'] ?? '');
     $bestsellerLimit = max(1, min(16, (int) ($home['bestsellers_count'] ?? 8)));

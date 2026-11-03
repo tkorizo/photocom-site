@@ -8,16 +8,16 @@ require __DIR__ . '/includes/init.php';
 $catSlug = trim($_GET['cat'] ?? '');
 $searchQuery = trim($_GET['q'] ?? '');
 $brandFilter = trim($_GET['brand'] ?? '');
-$sort = $_GET['sort'] ?? 'name';
+$sort = $_GET['sort'] ?? 'newest';
 $minPrice = trim($_GET['min_price'] ?? '');
 $maxPrice = trim($_GET['max_price'] ?? '');
 $onSaleOnly = isset($_GET['on_sale']);
 $inStockOnly = isset($_GET['in_stock']);
 $page = max(1, (int) ($_GET['page'] ?? 1));
 
-$allowedSort = ['name', 'price_asc', 'price_desc', 'newest'];
+$allowedSort = ['newest', 'name', 'price_asc', 'price_desc'];
 if (!in_array($sort, $allowedSort, true)) {
-    $sort = 'name';
+    $sort = 'newest';
 }
 
 $category = null;
@@ -61,7 +61,7 @@ $queryParams = static function () use (
         'brand' => $brandFilter ?: null,
         'min_price' => $minPrice !== '' ? $minPrice : null,
         'max_price' => $maxPrice !== '' ? $maxPrice : null,
-        'sort' => $sort !== 'name' ? $sort : null,
+        'sort' => $sort !== 'newest' ? $sort : null,
         'on_sale' => $onSaleOnly ? '1' : null,
         'in_stock' => $inStockOnly ? '1' : null,
         'page' => $page > 1 ? $page : null,
@@ -77,7 +77,7 @@ $queryParams = static function () use (
     $seoTitle = $pageTitle;
     $seoDescription = trim((string) ($category['description'] ?? '')) ?: ('Catalogue ' . $siteName . ' — matériel photo et vidéo.');
     $hasExtraFilters = $searchQuery !== '' || $brandFilter !== '' || $minPrice !== '' || $maxPrice !== ''
-        || $onSaleOnly || $inStockOnly || $page > 1 || $sort !== 'name';
+        || $onSaleOnly || $inStockOnly || $page > 1 || $sort !== 'newest';
     $invalidCategory = $catSlug !== '' && !$category;
     $seoRobots = ($hasExtraFilters || $invalidCategory) ? 'noindex,follow' : 'index,follow';
     $publicBase = rtrim((string) ($site['site_url'] ?: Helpers::config()['url']), '/');

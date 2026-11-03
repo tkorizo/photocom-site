@@ -89,7 +89,7 @@ class ProductRepository
         ?string $brand = null,
         ?float $minPrice = null,
         ?float $maxPrice = null,
-        ?string $sort = 'name',
+        ?string $sort = 'newest',
         bool $onSaleOnly = false,
         bool $inStockOnly = false
     ): array {
